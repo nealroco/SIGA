@@ -12,13 +12,16 @@ export default async function NuevaCuentaPage() {
   const puedeCrear = session ? await can(session.user.rol, "MOD-003", "crear") : false;
   const [contratos, rubros] = await Promise.all([
     prisma.contrato.findMany({ where: { estado: "Aprobado" }, orderBy: { numero: "asc" } }),
-    prisma.rubro.findMany({ orderBy: { codigo: "asc" } }),
+    prisma.rubro.findMany({ where: { estado: "Aprobado" }, orderBy: { codigo: "asc" } }),
   ]);
 
   return (
     <div>
       <h1 className="page-title">Nueva cuenta de cobro</h1>
-      <p className="page-sub">MOD-003 · la cuenta quedará pendiente de aprobación (RN-025). RN-005: requiere un contrato Aprobado.</p>
+      <p className="page-sub">
+        MOD-003 · la cuenta quedará pendiente de aprobación (RN-025). RN-005: requiere un contrato Aprobado.
+        RN-007: el rubro debe tener su meta de inversión Aprobada (ver <Link href="/rubros" className="mono" style={{ color: "var(--blue)" }}>Rubros →</Link>).
+      </p>
 
       {!puedeCrear ? (
         <div className="alert info" style={{ marginTop: 18, maxWidth: 760 }}>

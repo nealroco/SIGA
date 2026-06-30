@@ -24,13 +24,19 @@ export default async function FuentesPage({ searchParams }: { searchParams: Prom
   if (["Registrada", "Aprobada", "Rechazada"].includes(estado)) where.estado = estado;
 
   const items = await prisma.fuenteFinanciacion.findMany({ where, orderBy: { createdAt: "desc" } });
+  const rubrosPorFuente = await prisma.rubro.findMany({ where: { estado: "Aprobado" }, select: { fuenteId: true, valorAsignado: true } });
+  const comprometidoPorFuente = new Map<number, number>();
+  for (const r of rubrosPorFuente) comprometidoPorFuente.set(r.fuenteId, (comprometidoPorFuente.get(r.fuenteId) ?? 0) + r.valorAsignado);
 
   return (
     <div>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
         <div>
           <h1 className="page-title">Fuentes de financiación</h1>
-          <p className="page-sub">MOD-020 · gobierno financiero. Doble aprobación RN-025 (Financiera registra · Administrador aprueba).</p>
+          <p className="page-sub">
+            MOD-020 · gobierno financiero. Doble aprobación RN-025 (Financiera registra · Administrador aprueba).
+            Ver <Link href="/rubros" className="mono" style={{ color: "var(--blue)" }}>Rubros y control de inversión →</Link>
+          </p>
         </div>
         {puedeCrear ? (
           <Link href="/fuentes/nuevo" className="btn btn-primary">+ Nueva fuente</Link>
@@ -57,25 +63,33 @@ export default async function FuentesPage({ searchParams }: { searchParams: Prom
               <th>Código</th>
               <th>Nombre</th>
               <th>Tipo</th>
-              <th>Valor disponible</th>
+              <th>Disponible</th>
+              <th>Comprometido en rubros</th>
+              <th>Libre</th>
               <th>Estado</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 ? (
-              <tr><td colSpan={6} className="empty">No hay fuentes de financiación.</td></tr>
+              <tr><td colSpan={8} className="empty">No hay fuentes de financiación.</td></tr>
             ) : (
-              items.map((f) => (
-                <tr key={f.id}>
-                  <td className="doc">{f.codigo}</td>
-                  <td>{f.nombre}</td>
-                  <td>{f.tipo ?? "—"}</td>
-                  <td className="mono">{cop.format(f.valorDisponible)}</td>
-                  <td><span className={`badge ${ESTADO_BADGE[f.estado] ?? "off"}`}>{f.estado}</span></td>
-                  <td><Link href={`/fuentes/${f.id}`} className="btn btn-sm">Abrir</Link></td>
-                </tr>
-              ))
+              items.map((f) => {
+                const comprometido = comprometidoPorFuente.get(f.id) ?? 0;
+                const libre = f.valorDisponible - comprometido;
+                return (
+                  <tr key={f.id}>
+                    <td className="doc">{f.codigo}</td>
+                    <td>{f.nombre}</td>
+                    <td>{f.tipo ?? "—"}</td>
+                    <td className="mono">{cop.format(f.valorDisponible)}</td>
+                    <td className="mono">{cop.format(comprometido)}</td>
+                    <td className="mono" style={{ color: libre < 0 ? "var(--coral)" : undefined }}>{cop.format(libre)}</td>
+                    <td><span className={`badge ${ESTADO_BADGE[f.estado] ?? "off"}`}>{f.estado}</span></td>
+                    <td><Link href={`/fuentes/${f.id}`} className="btn btn-sm">Abrir</Link></td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

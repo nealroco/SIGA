@@ -278,7 +278,11 @@ async function main() {
   ];
   const rubroByCodigo: Record<string, number> = {};
   for (const [codigo, nombre, fuenteCod, valorAsignado] of RUBROS) {
-    const r = await prisma.rubro.upsert({ where: { codigo }, update: {}, create: { codigo, nombre, fuenteId: fuenteByCodigo[fuenteCod], valorAsignado } });
+    const r = await prisma.rubro.upsert({
+      where: { codigo },
+      update: {},
+      create: { codigo, nombre, fuenteId: fuenteByCodigo[fuenteCod], valorAsignado, estado: "Aprobado", createdById: finU?.id ?? null, aprobadoById: adminU2?.id ?? null, aprobadoEn: new Date() },
+    });
     rubroByCodigo[codigo] = r.id;
   }
 

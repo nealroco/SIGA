@@ -70,6 +70,8 @@ model Usuario {
   informesCreados       Informe[]              @relation("inf_creador")
   fuentesCreadas        FuenteFinanciacion[]   @relation("fuente_creador")
   fuentesAprobadas      FuenteFinanciacion[]   @relation("fuente_aprobador")
+  rubrosCreados         Rubro[]                @relation("rubro_creador")
+  rubrosAprobados       Rubro[]                @relation("rubro_aprobador")
   cuentasCreadas        CuentaCobro[]          @relation("cuenta_creador")
   cuentasAprobadas      CuentaCobro[]          @relation("cuenta_aprobador")
   pagosRegistrados      Pago[]                 @relation("pago_creador")
@@ -431,16 +433,24 @@ model FuenteFinanciacion {
   @@map("fuentes_financiacion")
 }
 
-/// Rubro presupuestal — agrupado bajo una fuente
+/// Rubro presupuestal — agrupado bajo una fuente. RN-025: Financiera propone la meta de inversión
+/// (valorAsignado), Administrador la aprueba. Solo rubros Aprobados pueden recibir cuentas de cobro.
 model Rubro {
   id              Int      @id @default(autoincrement())
   codigo          String   @unique
   nombre          String
   fuenteId        Int
-  valorAsignado   Float    @default(0)
+  valorAsignado   Float    @default(0) // meta de inversión del rubro
   vigencia        String?
+  estado          String   @default("Registrado") // Registrado | Aprobado | Rechazado
+  motivoRechazo   String?
+  createdById     Int?
+  aprobadoById    Int?
+  aprobadoEn      DateTime?
   createdAt       DateTime @default(now())
   fuente          FuenteFinanciacion @relation(fields: [fuenteId], references: [id])
+  createdBy       Usuario? @relation("rubro_creador", fields: [createdById], references: [id])
+  aprobadoBy      Usuario? @relation("rubro_aprobador", fields: [aprobadoById], references: [id])
   cuentas         CuentaCobro[]
 
   @@map("rubros")

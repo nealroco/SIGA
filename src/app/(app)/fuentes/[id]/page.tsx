@@ -29,6 +29,10 @@ export default async function FuenteDetallePage({ params }: { params: Promise<{ 
   const puedeEditar = (await can(rol, "MOD-020", "editar")) && editable;
   const puedeAprobar = (await can(rol, "MOD-020", "aprobar")) && f.estado === "Registrada";
 
+  const rubros = await prisma.rubro.findMany({ where: { fuenteId: f.id }, orderBy: { codigo: "asc" } });
+  const comprometido = rubros.filter((r) => r.estado === "Aprobado").reduce((acc, r) => acc + r.valorAsignado, 0);
+  const libre = f.valorDisponible - comprometido;
+
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
@@ -47,6 +51,8 @@ export default async function FuenteDetallePage({ params }: { params: Promise<{ 
           <div><b>Nombre:</b> {f.nombre}</div>
           <div><b>Tipo:</b> {f.tipo ?? "—"}</div>
           <div><b>Valor disponible:</b> <span className="mono">{cop.format(f.valorDisponible)}</span></div>
+          <div><b>Comprometido en rubros:</b> <span className="mono">{cop.format(comprometido)}</span></div>
+          <div><b>Libre:</b> <span className="mono" style={{ color: libre < 0 ? "var(--coral)" : undefined }}>{cop.format(libre)}</span></div>
           <div><b>Vigencia:</b> {f.vigencia ?? "—"}</div>
           <div><b>Registrado por:</b> {f.createdBy?.nombre ?? "—"}</div>
           <div><b>Aprobado por:</b> {f.aprobadoBy ? `${f.aprobadoBy.nombre} · ${fmt(f.aprobadoEn)}` : "—"}</div>
@@ -54,6 +60,33 @@ export default async function FuenteDetallePage({ params }: { params: Promise<{ 
         {f.estado === "Rechazada" && f.motivoRechazo && (
           <div className="alert error" style={{ marginTop: 14 }}>Rechazada: {f.motivoRechazo}</div>
         )}
+      </div>
+
+      <div className="table-wrap" style={{ marginTop: 18, maxWidth: 760 }}>
+        <p className="section-cap">Rubros de esta fuente</p>
+        <table className="data">
+          <thead>
+            <tr><th>Código</th><th>Nombre</th><th>Meta de inversión</th><th>Estado</th><th></th></tr>
+          </thead>
+          <tbody>
+            {rubros.length === 0 ? (
+              <tr><td colSpan={5} className="empty">Esta fuente aún no tiene rubros.</td></tr>
+            ) : (
+              rubros.map((r) => (
+                <tr key={r.id}>
+                  <td className="doc">{r.codigo}</td>
+                  <td>{r.nombre}</td>
+                  <td className="mono">{cop.format(r.valorAsignado)}</td>
+                  <td><span className={`badge ${r.estado === "Aprobado" ? "ok" : r.estado === "Rechazado" ? "C" : "A"}`}>{r.estado}</span></td>
+                  <td><Link href={`/rubros/${r.id}`} className="btn btn-sm">Abrir</Link></td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+        <div style={{ marginTop: 12 }}>
+          <Link href="/rubros/nuevo" className="btn btn-sm">+ Nuevo rubro en esta fuente</Link>
+        </div>
       </div>
 
       {/* RN-025: panel de aprobación (solo nivel A — Administrador) */}

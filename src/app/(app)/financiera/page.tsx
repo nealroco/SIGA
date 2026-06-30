@@ -35,7 +35,10 @@ export default async function FinancieraPage({ searchParams }: { searchParams: P
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
         <div>
           <h1 className="page-title">Financiera</h1>
-          <p className="page-sub">MOD-003 · cuentas de cobro y pagos. Doble aprobación RN-025 (Financiera registra · Administrador aprueba).</p>
+          <p className="page-sub">
+            MOD-003 · cuentas de cobro y órdenes de pago (no en línea). Doble aprobación RN-025 (Financiera
+            registra · Administrador aprueba). Ver <Link href="/rubros" className="mono" style={{ color: "var(--blue)" }}>Rubros y control de inversión →</Link>
+          </p>
         </div>
         {puedeCrear ? (
           <Link href="/financiera/nuevo" className="btn btn-primary">+ Nueva cuenta</Link>

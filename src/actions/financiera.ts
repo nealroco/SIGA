@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
 import { writeAudit } from "@/lib/audit";
+import { comprometidoRubroExcluyendo } from "@/lib/presupuesto";
 
 const MOD = "MOD-003";
 
@@ -66,9 +67,11 @@ export async function crearCuenta(_prev: FormState, fd: FormData): Promise<FormS
       return { error: "RN-006: la cuenta requiere un informe aprobado." };
   }
 
-  // RN-007: la cuenta queda imputada a un rubro presupuestal — rubroId es obligatorio
-  // en el esquema (CuentaCobro.rubroId: Int, no nulo), así que ya queda satisfecho
-  // por la validación de Zod (rubroId positivo) y el esquema de la base de datos.
+  // RN-007: la cuenta queda imputada a un rubro presupuestal — debe ser un rubro con su meta de
+  // inversión ya Aprobada (RN-025 doble control en /rubros), no basta con que exista.
+  const rubro = await prisma.rubro.findUnique({ where: { id: d.rubroId } });
+  if (!rubro || rubro.estado !== "Aprobado")
+    return { fieldErrors: { rubroId: "RN-007: el rubro debe tener su meta de inversión Aprobada." } };
 
   const creada = await prisma.cuentaCobro.create({
     data: {
@@ -115,6 +118,11 @@ export async function editarCuenta(_prev: FormState, fd: FormData): Promise<Form
       return { error: "RN-006: la cuenta requiere un informe aprobado." };
   }
 
+  // RN-007: el rubro debe tener su meta de inversión Aprobada.
+  const rubro = await prisma.rubro.findUnique({ where: { id: d.rubroId } });
+  if (!rubro || rubro.estado !== "Aprobado")
+    return { fieldErrors: { rubroId: "RN-007: el rubro debe tener su meta de inversión Aprobada." } };
+
   await prisma.cuentaCobro.update({
     where: { id },
     data: {
@@ -155,11 +163,22 @@ export async function aprobarCuenta(fd: FormData): Promise<void> {
   if (vencida)
     throw new Error("RN-018: no se puede aprobar la cuenta — la póliza del contrato está vencida.");
 
+  // RN-009 (control de inversión, por compromiso): al aprobar la cuenta se COMPROMETE el rubro,
+  // aunque todavía no se haya pagado nada. No puede comprometerse más de lo libre del rubro.
+  const valorAprobado = cuenta.valorAprobado ?? cuenta.valorCobrado;
+  const rubro = await prisma.rubro.findUnique({ where: { id: cuenta.rubroId } });
+  if (!rubro) throw new Error("El rubro de esta cuenta no existe.");
+  const comprometido = await comprometidoRubroExcluyendo(rubro.id, cuenta.id);
+  if (comprometido + valorAprobado > rubro.valorAsignado)
+    throw new Error(
+      `RN-009: aprobar esta cuenta comprometería ${valorAprobado} contra un rubro con solo ${rubro.valorAsignado - comprometido} libres.`
+    );
+
   await prisma.cuentaCobro.update({
     where: { id },
     data: {
       estado: "Aprobada",
-      valorAprobado: cuenta.valorAprobado ?? cuenta.valorCobrado,
+      valorAprobado,
       aprobadoById: Number(session.user.id),
       aprobadoEn: new Date(),
       motivoRechazo: null,

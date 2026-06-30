@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
 import { editarCuenta, aprobarCuenta, rechazarCuenta, aprobarPago, rechazarPago } from "@/actions/financiera";
+import { calcularEjecucionRubro } from "@/lib/presupuesto";
 import CuentaForm from "@/components/CuentaForm";
 import PagoForm from "@/components/PagoForm";
 
@@ -39,15 +40,11 @@ export default async function CuentaDetallePage({ params }: { params: Promise<{ 
   const puedeAprobarPago = await can(rol, "MOD-003", "aprobar");
   const puedeCrearPago = (await can(rol, "MOD-003", "crear")) && c.estado === "Aprobada";
 
-  const [contratos, rubros, pagosRubro] = await Promise.all([
+  const [contratos, rubros, ejRubro] = await Promise.all([
     prisma.contrato.findMany({ orderBy: { numero: "asc" } }),
-    prisma.rubro.findMany({ orderBy: { codigo: "asc" } }),
-    prisma.pago.findMany({ where: { cuentaCobro: { rubroId: c.rubroId }, estado: "Aprobado" } }),
+    prisma.rubro.findMany({ where: { OR: [{ estado: "Aprobado" }, { id: c.rubroId }] }, orderBy: { codigo: "asc" } }),
+    calcularEjecucionRubro(c.rubroId, c.rubro.valorAsignado),
   ]);
-  // Solo las órdenes de pago Aprobadas cuentan como ejecutadas (no es una transacción en línea: las
-  // Ordenadas siguen pendientes de aprobación y las Rechazadas nunca se ejecutan).
-  const sumaPagosRubro = pagosRubro.reduce((acc, p) => acc + p.valorPagado, 0);
-  const saldoRubro = c.rubro.valorAsignado - sumaPagosRubro;
   const totalPagado = c.pagos.filter((p) => p.estado === "Aprobado").reduce((acc, p) => acc + p.valorPagado, 0);
   const saldoCausado = (c.valorAprobado ?? 0) - totalPagado;
 
@@ -67,14 +64,14 @@ export default async function CuentaDetallePage({ params }: { params: Promise<{ 
         <p className="section-cap">Detalle</p>
         <div className="form-grid" style={{ gap: "10px 18px" }}>
           <div><b>Contrato:</b> {c.contrato.numero} — {c.contrato.objeto}</div>
-          <div><b>Rubro:</b> {c.rubro.codigo} · {c.rubro.nombre} ({c.rubro.fuente.nombre})</div>
+          <div><b>Rubro:</b> <Link href={`/rubros/${c.rubroId}`} className="mono" style={{ color: "var(--blue)" }}>{c.rubro.codigo}</Link> · {c.rubro.nombre} ({c.rubro.fuente.nombre})</div>
           <div><b>Período:</b> {c.periodo}</div>
           <div><b>Informe:</b> {c.informeId ?? "— (sin informe asociado)"}</div>
           <div><b>Valor cobrado:</b> <span className="mono">{cop.format(c.valorCobrado)}</span></div>
           <div><b>Valor aprobado:</b> <span className="mono">{c.valorAprobado != null ? cop.format(c.valorAprobado) : "—"}</span></div>
           <div><b>Total pagado:</b> <span className="mono">{cop.format(totalPagado)}</span></div>
           <div><b>Saldo causado:</b> <span className="mono">{cop.format(saldoCausado)}</span></div>
-          <div><b>Saldo restante del rubro:</b> <span className="mono">{cop.format(saldoRubro)}</span></div>
+          <div><b>Libre en el rubro:</b> <span className="mono" style={{ color: ejRubro.libre < 0 ? "var(--coral)" : undefined }}>{cop.format(ejRubro.libre)}</span> <span className="page-sub" style={{ display: "inline" }}>(Asignado {cop.format(ejRubro.asignado)} − Comprometido {cop.format(ejRubro.comprometido)})</span></div>
           <div><b>Registrado por:</b> {c.createdBy?.nombre ?? "—"}</div>
           <div><b>Aprobado por:</b> {c.aprobadoBy ? `${c.aprobadoBy.nombre} · ${fmt(c.aprobadoEn)}` : "—"}</div>
         </div>
@@ -90,6 +87,8 @@ export default async function CuentaDetallePage({ params }: { params: Promise<{ 
           <p className="page-sub" style={{ marginBottom: 14 }}>
             Como <b>{rol}</b> (nivel Aprobación) puedes dar firmeza a la cuenta registrada por Financiera. No puedes aprobar una
             cuenta que tú mismo registraste. RN-018: si el contrato tiene una póliza Aprobada vencida, no podrá aprobarse.
+            RN-009: aprobar esta cuenta <b>compromete</b> {cop.format(c.valorAprobado ?? c.valorCobrado)} contra el rubro,
+            aunque todavía no se pague — se bloqueará si supera lo libre.
           </p>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
             <form action={aprobarCuenta}>
