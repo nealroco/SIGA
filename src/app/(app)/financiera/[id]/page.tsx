@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
-import { editarCuenta, aprobarCuenta, rechazarCuenta } from "@/actions/financiera";
+import { editarCuenta, aprobarCuenta, rechazarCuenta, aprobarPago, rechazarPago } from "@/actions/financiera";
 import CuentaForm from "@/components/CuentaForm";
 import PagoForm from "@/components/PagoForm";
 
@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 const cop = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
 const ESTADO_BADGE: Record<string, string> = { Registrada: "A", Aprobada: "ok", Rechazada: "C", Pagada: "L" };
+const PAGO_BADGE: Record<string, string> = { Ordenado: "A", Aprobado: "ok", Rechazado: "C" };
 const fmt = (d: Date | null) => (d ? new Date(d).toLocaleDateString("es-CO") : "—");
 
 export default async function CuentaDetallePage({ params }: { params: Promise<{ id: string }> }) {
@@ -25,7 +26,7 @@ export default async function CuentaDetallePage({ params }: { params: Promise<{ 
       rubro: { include: { fuente: true } },
       createdBy: true,
       aprobadoBy: true,
-      pagos: { orderBy: { fechaPago: "desc" } },
+      pagos: { orderBy: { fechaPago: "desc" }, include: { createdBy: true, aprobadoBy: true } },
     },
   });
   if (!c) notFound();
@@ -35,16 +36,19 @@ export default async function CuentaDetallePage({ params }: { params: Promise<{ 
   const editable = c.estado === "Registrada" || c.estado === "Rechazada";
   const puedeEditar = (await can(rol, "MOD-003", "editar")) && editable;
   const puedeAprobar = (await can(rol, "MOD-003", "aprobar")) && c.estado === "Registrada";
+  const puedeAprobarPago = await can(rol, "MOD-003", "aprobar");
   const puedeCrearPago = (await can(rol, "MOD-003", "crear")) && c.estado === "Aprobada";
 
   const [contratos, rubros, pagosRubro] = await Promise.all([
     prisma.contrato.findMany({ orderBy: { numero: "asc" } }),
     prisma.rubro.findMany({ orderBy: { codigo: "asc" } }),
-    prisma.pago.findMany({ where: { cuentaCobro: { rubroId: c.rubroId } } }),
+    prisma.pago.findMany({ where: { cuentaCobro: { rubroId: c.rubroId }, estado: "Aprobado" } }),
   ]);
+  // Solo las órdenes de pago Aprobadas cuentan como ejecutadas (no es una transacción en línea: las
+  // Ordenadas siguen pendientes de aprobación y las Rechazadas nunca se ejecutan).
   const sumaPagosRubro = pagosRubro.reduce((acc, p) => acc + p.valorPagado, 0);
   const saldoRubro = c.rubro.valorAsignado - sumaPagosRubro;
-  const totalPagado = c.pagos.reduce((acc, p) => acc + p.valorPagado, 0);
+  const totalPagado = c.pagos.filter((p) => p.estado === "Aprobado").reduce((acc, p) => acc + p.valorPagado, 0);
   const saldoCausado = (c.valorAprobado ?? 0) - totalPagado;
 
   return (
@@ -124,8 +128,8 @@ export default async function CuentaDetallePage({ params }: { params: Promise<{ 
         </div>
       )}
 
-      <div className="table-wrap" style={{ marginTop: 18, maxWidth: 760 }}>
-        <p className="section-cap">Pagos</p>
+      <div className="table-wrap" style={{ marginTop: 18, maxWidth: 920 }}>
+        <p className="section-cap">Órdenes de pago (RN-025 · no son transacciones en línea)</p>
         <table className="data">
           <thead>
             <tr>
@@ -133,11 +137,15 @@ export default async function CuentaDetallePage({ params }: { params: Promise<{ 
               <th>Valor</th>
               <th>Comprobante</th>
               <th>Medio</th>
+              <th>Estado</th>
+              <th>Ordenado por</th>
+              <th>Aprobado por</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {c.pagos.length === 0 ? (
-              <tr><td colSpan={4} className="empty">No hay pagos registrados.</td></tr>
+              <tr><td colSpan={8} className="empty">No hay órdenes de pago.</td></tr>
             ) : (
               c.pagos.map((p) => (
                 <tr key={p.id}>
@@ -145,6 +153,23 @@ export default async function CuentaDetallePage({ params }: { params: Promise<{ 
                   <td className="mono">{cop.format(p.valorPagado)}</td>
                   <td className="doc">{p.comprobante ?? "—"}</td>
                   <td>{p.medioPago ?? "—"}</td>
+                  <td><span className={`badge ${PAGO_BADGE[p.estado] ?? "off"}`}>{p.estado}</span></td>
+                  <td>{p.createdBy?.nombre ?? "—"}</td>
+                  <td>{p.aprobadoBy?.nombre ?? "—"}</td>
+                  <td>
+                    {puedeAprobarPago && p.estado === "Ordenado" ? (
+                      <span style={{ display: "flex", gap: 6 }}>
+                        <form action={aprobarPago}>
+                          <input type="hidden" name="id" value={p.id} />
+                          <button className="btn btn-sm btn-blue" type="submit">Aprobar</button>
+                        </form>
+                        <form action={rechazarPago}>
+                          <input type="hidden" name="id" value={p.id} />
+                          <button className="btn btn-sm" type="submit" style={{ borderColor: "var(--coral)", color: "var(--coral)" }}>Rechazar</button>
+                        </form>
+                      </span>
+                    ) : null}
+                  </td>
                 </tr>
               ))
             )}
@@ -154,9 +179,11 @@ export default async function CuentaDetallePage({ params }: { params: Promise<{ 
 
       {puedeCrearPago && <PagoForm cuentaCobroId={c.id} />}
 
-      {!puedeEditar && !puedeAprobar && !puedeCrearPago && (
+      {!puedeEditar && !puedeAprobar && !puedeCrearPago && !puedeAprobarPago && (
         <div className="alert info" style={{ marginTop: 18, maxWidth: 760 }}>
-          Vista de solo lectura para tu rol (<b>{rol}</b>). El registro y el pago los hace Financiera (E) y la aprobación el Administrador (A) — RN-025.
+          Vista de solo lectura para tu rol (<b>{rol}</b>). Financiera (E) registra la cuenta y ordena el
+          pago; el Administrador (A) aprueba ambos pasos — RN-025. Ninguno se ejecuta como transacción en
+          línea.
         </div>
       )}
     </div>

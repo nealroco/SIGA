@@ -41,8 +41,8 @@ export async function generarAnalisis(_prev: FormState, fd: FormData): Promise<F
   if (!parsed.success) return { fieldErrors: fieldErrorsOf(parsed.error) };
   const d = parsed.data;
 
-  // Gasto ejecutado: SUMA de todos los pagos existentes (total acumulado).
-  const pagos = await prisma.pago.findMany({ select: { valorPagado: true } });
+  // Gasto ejecutado: SUMA de las órdenes de pago Aprobadas (las Ordenadas siguen pendientes; RN-025).
+  const pagos = await prisma.pago.findMany({ where: { estado: "Aprobado" }, select: { valorPagado: true } });
   const gastoEjecutado = pagos.reduce((acc, p) => acc + p.valorPagado, 0);
 
   // Ejecución financiera %: SUMA(pagos) / SUMA(cuentaCobro.valorAprobado de cuentas Aprobada o Pagada) * 100.

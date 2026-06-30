@@ -20,7 +20,7 @@ export default async function DashboardPage() {
     prisma.contrato.count({ where: { estado: "Aprobado" } }),
     prisma.contrato.count({ where: { estado: "Registrado" } }),
     prisma.cuentaCobro.findMany({ select: { valorAprobado: true, valorCobrado: true } }),
-    prisma.pago.findMany({ select: { valorPagado: true } }),
+    prisma.pago.findMany({ where: { estado: "Aprobado" }, select: { valorPagado: true } }),
     prisma.documento.count({ where: { estado: "Aprobado" } }),
     prisma.documento.count(),
   ]);

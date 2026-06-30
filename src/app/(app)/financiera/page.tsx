@@ -75,7 +75,7 @@ export default async function FinancieraPage({ searchParams }: { searchParams: P
               <tr><td colSpan={8} className="empty">No hay cuentas de cobro.</td></tr>
             ) : (
               items.map((c) => {
-                const totalPagado = c.pagos.reduce((acc, p) => acc + p.valorPagado, 0);
+                const totalPagado = c.pagos.filter((p) => p.estado === "Aprobado").reduce((acc, p) => acc + p.valorPagado, 0);
                 const saldoCausado = (c.valorAprobado ?? 0) - totalPagado;
                 return (
                   <tr key={c.id}>

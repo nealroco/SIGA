@@ -73,6 +73,7 @@ model Usuario {
   cuentasCreadas        CuentaCobro[]          @relation("cuenta_creador")
   cuentasAprobadas      CuentaCobro[]          @relation("cuenta_aprobador")
   pagosRegistrados      Pago[]                 @relation("pago_creador")
+  pagosAprobados        Pago[]                 @relation("pago_aprobador")
   polizasCreadas        Poliza[]               @relation("poliza_creador")
   polizasAprobadas      Poliza[]               @relation("poliza_aprobador")
   secopCreados          RegistroSecop[]        @relation("secop_creador")
@@ -471,17 +472,25 @@ model CuentaCobro {
 }
 
 /// Pago contra una cuenta de cobro aprobada — RN-008 (≤ valor aprobado), RN-009 (≤ saldo de rubro), RN-023 (no negativo)
+/// Orden de pago contra una cuenta de cobro aprobada — RN-025: Financiera ordena (E), Administrador
+/// aprueba (A). No es una transacción en línea: el sistema registra la orden/aprobación administrativa;
+/// la ejecución bancaria real (DOC-037 comprobante de egreso) ocurre fuera del sistema, en Tesorería.
 model Pago {
   id            Int         @id @default(autoincrement())
   cuentaCobroId Int
   valorPagado   Float
   fechaPago     DateTime    @default(now())
   comprobante   String?
-  medioPago     String?     // Transferencia | Cheque | PSE
+  medioPago     String?     // Orden bancaria | Cheque | Giro
+  estado        String      @default("Ordenado") // Ordenado | Aprobado | Rechazado
+  motivoRechazo String?
   createdById   Int?
+  aprobadoById  Int?
+  aprobadoEn    DateTime?
   createdAt     DateTime    @default(now())
   cuentaCobro   CuentaCobro @relation(fields: [cuentaCobroId], references: [id])
   createdBy     Usuario?    @relation("pago_creador", fields: [createdById], references: [id])
+  aprobadoBy    Usuario?    @relation("pago_aprobador", fields: [aprobadoById], references: [id])
 
   @@map("pagos")
 }

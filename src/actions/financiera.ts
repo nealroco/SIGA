@@ -189,11 +189,14 @@ export async function rechazarCuenta(fd: FormData): Promise<void> {
   redirect(`/financiera/${id}`);
 }
 
-export async function registrarPago(fd: FormData): Promise<void> {
+// Los pagos no son transacciones en línea: el sistema registra la ORDEN de pago (Financiera, E) y
+// requiere APROBACIÓN administrativa (Administrador, A) antes de considerarse firme — mismo patrón de
+// doble control (4 ojos) que RN-025. La ejecución bancaria real ocurre fuera del sistema, en Tesorería.
+export async function ordenarPago(fd: FormData): Promise<void> {
   const session = await auth();
   if (!session?.user) throw new Error("Sesión expirada.");
   if (!(await can(session.user.rol, MOD, "crear")))
-    throw new Error(`No autorizado: registrar pagos requiere escritura (E) en MOD-003 (rol Financiera). Tu rol es ${session.user.rol}.`);
+    throw new Error(`No autorizado: ordenar pagos requiere escritura (E) en MOD-003 (rol Financiera). Tu rol es ${session.user.rol}.`);
 
   const cuentaCobroId = Number(fd.get("cuentaCobroId"));
   const valorPagado = Number(fd.get("valorPagado"));
@@ -202,41 +205,96 @@ export async function registrarPago(fd: FormData): Promise<void> {
 
   const cuenta = await prisma.cuentaCobro.findUnique({
     where: { id: cuentaCobroId },
-    include: { rubro: true, pagos: true },
+    include: { rubro: true, pagos: { where: { estado: "Aprobado" } } },
   });
   if (!cuenta) throw new Error("La cuenta de cobro no existe.");
-  if (cuenta.estado !== "Aprobada") throw new Error("Solo se puede pagar una cuenta Aprobada.");
+  if (cuenta.estado !== "Aprobada") throw new Error("Solo se puede ordenar un pago contra una cuenta Aprobada.");
 
-  // RN-023: el valor pagado debe ser positivo.
+  // RN-023: el valor ordenado debe ser positivo.
   if (!valorPagado || valorPagado <= 0) throw new Error("RN-023: el valor del pago debe ser mayor a cero.");
 
-  // RN-008: el pago (acumulado) no puede superar el valor aprobado de la cuenta.
-  const sumaPagosCuenta = cuenta.pagos.reduce((acc, p) => acc + p.valorPagado, 0);
-  if (sumaPagosCuenta + valorPagado > (cuenta.valorAprobado ?? 0))
-    throw new Error("RN-008: el pago supera el valor aprobado de la cuenta.");
+  // RN-008: lo ya Aprobado + esta orden no puede superar el valor aprobado de la cuenta.
+  const sumaAprobadosCuenta = cuenta.pagos.reduce((acc, p) => acc + p.valorPagado, 0);
+  if (sumaAprobadosCuenta + valorPagado > (cuenta.valorAprobado ?? 0))
+    throw new Error("RN-008: la orden supera el valor aprobado de la cuenta.");
 
-  // RN-009: el pago no puede superar el saldo disponible del rubro presupuestal.
-  const pagosRubro = await prisma.pago.findMany({ where: { cuentaCobro: { rubroId: cuenta.rubroId } } });
-  const sumaPagosRubro = pagosRubro.reduce((acc, p) => acc + p.valorPagado, 0);
-  const saldoRubro = cuenta.rubro.valorAsignado - sumaPagosRubro;
+  // RN-009: lo ya Aprobado del rubro + esta orden no puede superar el saldo disponible del rubro.
+  const pagosRubro = await prisma.pago.findMany({ where: { cuentaCobro: { rubroId: cuenta.rubroId }, estado: "Aprobado" } });
+  const sumaAprobadosRubro = pagosRubro.reduce((acc, p) => acc + p.valorPagado, 0);
+  const saldoRubro = cuenta.rubro.valorAsignado - sumaAprobadosRubro;
   if (valorPagado > saldoRubro)
-    throw new Error("RN-009: el pago supera el saldo disponible del rubro (" + saldoRubro + ").");
+    throw new Error("RN-009: la orden supera el saldo disponible del rubro (" + saldoRubro + ").");
 
   const pago = await prisma.pago.create({
-    data: {
-      cuentaCobroId,
-      valorPagado,
-      comprobante,
-      medioPago,
-      createdById: Number(session.user.id),
-    },
+    data: { cuentaCobroId, valorPagado, comprobante, medioPago, estado: "Ordenado", createdById: Number(session.user.id) },
   });
-
-  if (sumaPagosCuenta + valorPagado >= (cuenta.valorAprobado ?? 0)) {
-    await prisma.cuentaCobro.update({ where: { id: cuentaCobroId }, data: { estado: "Pagada" } });
-  }
-
-  await writeAudit({ usuarioId: Number(session.user.id), accion: "pagar", modulo: MOD, registroId: pago.id, valorNuevo: { cuentaCobroId, valorPagado, medioPago } });
+  await writeAudit({ usuarioId: Number(session.user.id), accion: "ordenar_pago", modulo: MOD, registroId: pago.id, valorNuevo: { cuentaCobroId, valorPagado, medioPago, estado: "Ordenado" } });
   revalidatePath("/financiera");
   redirect(`/financiera/${cuentaCobroId}`);
+}
+
+// RN-025: solo nivel Aprobación (A) aprueba, y nunca quien ordenó el pago (4 ojos).
+export async function aprobarPago(fd: FormData): Promise<void> {
+  const session = await auth();
+  if (!session?.user) throw new Error("Sesión expirada.");
+  if (!(await can(session.user.rol, MOD, "aprobar")))
+    throw new Error(`No autorizado: aprobar órdenes de pago requiere nivel Aprobación (A) en MOD-003. Tu rol es ${session.user.rol}.`);
+
+  const id = Number(fd.get("id"));
+  const pago = await prisma.pago.findUnique({
+    where: { id },
+    include: { cuentaCobro: { include: { rubro: true, pagos: { where: { estado: "Aprobado" } } } } },
+  });
+  if (!pago || pago.estado !== "Ordenado") {
+    revalidatePath(`/financiera/${pago?.cuentaCobroId ?? ""}`);
+    redirect(`/financiera/${pago?.cuentaCobroId ?? ""}`);
+  }
+  if (pago.createdById && pago.createdById === Number(session.user.id))
+    throw new Error("Segregación de funciones (RN-025): no puedes aprobar una orden de pago que tú mismo ordenaste.");
+
+  const cuenta = pago.cuentaCobro;
+
+  // RN-008: re-valida contra lo YA Aprobado de la cuenta (otra orden pudo aprobarse entretanto).
+  const sumaAprobadosCuenta = cuenta.pagos.reduce((acc, p) => acc + p.valorPagado, 0);
+  if (sumaAprobadosCuenta + pago.valorPagado > (cuenta.valorAprobado ?? 0))
+    throw new Error("RN-008: aprobar esta orden superaría el valor aprobado de la cuenta.");
+
+  // RN-009: re-valida contra el saldo del rubro ya Aprobado (excluyendo esta orden).
+  const pagosRubro = await prisma.pago.findMany({ where: { cuentaCobro: { rubroId: cuenta.rubroId }, estado: "Aprobado" } });
+  const sumaAprobadosRubro = pagosRubro.reduce((acc, p) => acc + p.valorPagado, 0);
+  const saldoRubro = cuenta.rubro.valorAsignado - sumaAprobadosRubro;
+  if (pago.valorPagado > saldoRubro)
+    throw new Error("RN-009: aprobar esta orden superaría el saldo disponible del rubro (" + saldoRubro + ").");
+
+  await prisma.pago.update({
+    where: { id },
+    data: { estado: "Aprobado", aprobadoById: Number(session.user.id), aprobadoEn: new Date(), motivoRechazo: null },
+  });
+
+  if (sumaAprobadosCuenta + pago.valorPagado >= (cuenta.valorAprobado ?? 0)) {
+    await prisma.cuentaCobro.update({ where: { id: cuenta.id }, data: { estado: "Pagada" } });
+  }
+
+  await writeAudit({ usuarioId: Number(session.user.id), accion: "aprobar_pago", modulo: MOD, registroId: id, valorAnterior: { estado: "Ordenado" }, valorNuevo: { estado: "Aprobado" } });
+  revalidatePath("/financiera");
+  redirect(`/financiera/${cuenta.id}`);
+}
+
+export async function rechazarPago(fd: FormData): Promise<void> {
+  const session = await auth();
+  if (!session?.user) throw new Error("Sesión expirada.");
+  if (!(await can(session.user.rol, MOD, "aprobar")))
+    throw new Error(`No autorizado: rechazar órdenes de pago requiere nivel Aprobación (A) en MOD-003.`);
+
+  const id = Number(fd.get("id"));
+  const motivo = String(fd.get("motivo") ?? "").trim() || "Sin motivo especificado";
+  const pago = await prisma.pago.findUnique({ where: { id } });
+  if (!pago || pago.estado !== "Ordenado") {
+    redirect(`/financiera/${pago?.cuentaCobroId ?? ""}`);
+  }
+
+  await prisma.pago.update({ where: { id }, data: { estado: "Rechazado", motivoRechazo: motivo } });
+  await writeAudit({ usuarioId: Number(session.user.id), accion: "rechazar_pago", modulo: MOD, registroId: id, valorNuevo: { estado: "Rechazado", motivo } });
+  revalidatePath("/financiera");
+  redirect(`/financiera/${pago.cuentaCobroId}`);
 }

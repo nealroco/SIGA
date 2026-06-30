@@ -304,7 +304,7 @@ async function main() {
           createdById: finU?.id ?? null, aprobadoById: adminU2?.id ?? null, aprobadoEn: new Date(),
         },
       });
-      await prisma.pago.create({ data: { cuentaCobroId: cta.id, valorPagado: 4000000, comprobante: "CE-0001", medioPago: "Transferencia", createdById: finU?.id ?? null } });
+      await prisma.pago.create({ data: { cuentaCobroId: cta.id, valorPagado: 4000000, comprobante: "CE-0001", medioPago: "Orden bancaria", estado: "Aprobado", createdById: finU?.id ?? null, aprobadoById: adminU2?.id ?? null, aprobadoEn: new Date() } });
     }
   }
 
