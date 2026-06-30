@@ -1,0 +1,37 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+export type ModuloNav = { codigo: string; nombre: string; nivel: string };
+
+function hrefFor(codigo: string): string {
+  if (codigo === "MOD-001") return "/beneficiarios";
+  if (codigo === "MOD-007") return "/dashboard";
+  if (codigo === "MOD-028") return "/admin/permisos";
+  return `/modulo/${codigo}`;
+}
+
+export default function Sidebar({ modulos }: { modulos: ModuloNav[] }) {
+  const pathname = usePathname();
+  return (
+    <aside className="sidebar">
+      <div className="brand">
+        SIGA<span className="d">.</span>Deportes <span className="badge">v4</span>
+      </div>
+      <div className="side-cap">Módulos · {modulos.length}</div>
+      <nav>
+        {modulos.map((m) => {
+          const href = hrefFor(m.codigo);
+          const active = href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
+          return (
+            <Link key={m.codigo} href={href} className={`nav-item${active ? " active" : ""}`}>
+              <span>{m.nombre}</span>
+              <span className="code">{m.codigo}</span>
+            </Link>
+          );
+        })}
+      </nav>
+    </aside>
+  );
+}

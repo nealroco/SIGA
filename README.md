@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SIGA Deportes — Plataforma
 
-## Getting Started
+Sistema Integral de Gestión Administrativa Deportiva · Ministerio del Deporte / ESAL-JDEC.
+Implementación de la **arquitectura v4** (29 módulos, 9 roles, matriz de permisos, reglas RN, KPIs).
 
-First, run the development server:
+Primer entregable: **esqueleto** (IAM + navegación + modelo de datos + matriz de permisos) y el módulo
+**Beneficiarios (MOD-001)** end-to-end como patrón a replicar.
+
+## Stack
+
+- **Next.js 16** (App Router) + **TypeScript** + **React 19**
+- **Tailwind v4** + identidad visual SIGA (navy / azul eléctrico / coral; Bricolage Grotesque · Inter · JetBrains Mono)
+- **Prisma 6** · **SQLite** en desarrollo (schema *Postgres-ready*: en producción se cambia el `provider` a `postgresql`)
+- **Auth.js v5 (NextAuth)** — credenciales, sesión JWT con el rol del usuario
+
+## Requisitos
+
+- Node 20+ (este repo se construyó con Node 24 vía nvm). Sin Docker: la BD de desarrollo es SQLite (archivo local).
+
+## Puesta en marcha
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env          # ya incluido un .env de desarrollo
+npx prisma migrate dev        # crea prisma/dev.db y aplica el esquema
+npx prisma db seed            # 9 roles, 29 módulos, matriz 9×29, usuarios y beneficiarios de muestra
+npm run dev                   # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Usuarios de prueba (seed)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Correo | Rol | Permiso en MOD-001 |
+|---|---|---|
+| `admin@siga.gov.co` | Administrador | Escritura (crea/edita/baja) |
+| `coord@siga.gov.co` | Coord. deportiva | Escritura |
+| `revisor@siga.gov.co` | Revisor | Solo lectura |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Contraseña para todos: `siga2026`
 
-## Learn More
+## Reglas de negocio aplicadas (del v4)
 
-To learn more about Next.js, take a look at the following resources:
+- **RN-015** — los permisos de rol prevalecen: cada server action verifica `can(rol, "MOD-001", acción)` en el servidor; la UI oculta acciones sin permiso.
+- **RN-014** — auditoría: crear / editar / baja / login se registran en la tabla `auditoria`.
+- **RN-002** — baja lógica: dar de baja cambia el estado a `Inactivo`, nunca borra el histórico.
+- **RN-020** — validación: la edad no puede ser negativa (Zod).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Cómo se añade un módulo nuevo
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Modelo en `prisma/schema.prisma` (+ `migrate`).
+2. Server actions en `src/actions/<modulo>.ts` con `can()` + Zod + `writeAudit()`.
+3. Páginas en `src/app/(app)/<modulo>/…` reutilizando los componentes y la identidad.
+4. La navegación y los permisos ya salen automáticamente de la matriz sembrada (hoja Roles_Permisos del v4).
 
-## Deploy on Vercel
+## Producción (PostgreSQL)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Cambiar en `prisma/schema.prisma` el `datasource db { provider = "postgresql" }` y `DATABASE_URL` a la cadena de
+Postgres; `enum`/`Json` pueden reintroducirse (SQLite no los soporta y por eso aquí se usan `String`).

@@ -1,0 +1,99 @@
+// SIGA Deportes — modelo de datos (esqueleto + Beneficiarios)
+// Dev: SQLite. Producción: cambiar provider a "postgresql" y DATABASE_URL.
+// SQLite no soporta enums ni Json nativos en Prisma → se usan String (validados en app).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Rol funcional (los 9 roles del catálogo v4)
+model Rol {
+  id          Int       @id @default(autoincrement())
+  nombre      String    @unique
+  descripcion String?
+  estado      String    @default("Activo")
+  usuarios    Usuario[]
+  permisos    Permiso[]
+
+  @@map("roles")
+}
+
+/// Módulo de la plataforma (MOD-001 … MOD-029)
+model Modulo {
+  id        Int       @id @default(autoincrement())
+  codigo    String    @unique // MOD-001
+  nombre    String
+  categoria String?
+  esBase    Boolean   @default(false)
+  estado    String    @default("Activo")
+  permisos  Permiso[]
+
+  @@map("modulos")
+}
+
+/// Matriz de permisos: rol × módulo → nivel (E | A | L | C | NONE)
+model Permiso {
+  id       Int    @id @default(autoincrement())
+  rolId    Int
+  moduloId Int
+  nivel    String // E=Escritura A=Aprobación L=Lectura C=Carga NONE=Sin acceso
+  rol      Rol    @relation(fields: [rolId], references: [id], onDelete: Cascade)
+  modulo   Modulo @relation(fields: [moduloId], references: [id], onDelete: Cascade)
+
+  @@unique([rolId, moduloId])
+  @@map("permisos")
+}
+
+/// Usuario del sistema (IAM)
+model Usuario {
+  id           Int        @id @default(autoincrement())
+  nombre       String
+  correo       String     @unique
+  passwordHash String
+  rolId        Int
+  estado       String     @default("Activo") // Activo | Inactivo | Bloqueado
+  ultimoAcceso DateTime?
+  createdAt    DateTime   @default(now())
+  rol          Rol        @relation(fields: [rolId], references: [id])
+  auditorias   AuditLog[]
+
+  @@map("usuarios")
+}
+
+/// Bitácora de auditoría (RN-014: toda acción crítica queda registrada)
+model AuditLog {
+  id            Int      @id @default(autoincrement())
+  usuarioId     Int?
+  accion        String // crear | editar | baja | login
+  modulo        String // MOD-001
+  registroId    String?
+  valorAnterior String? // JSON serializado
+  valorNuevo    String? // JSON serializado
+  ip            String?
+  fechaHora     DateTime @default(now())
+  usuario       Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@map("auditoria")
+}
+
+/// MOD-001 Beneficiarios
+model Beneficiario {
+  id         Int      @id @default(autoincrement())
+  documento  String   @unique
+  nombre     String
+  edad       Int?
+  sexo       String? // M | F | Otro
+  programa   String?
+  territorio String?
+  acudiente  String?
+  estado     String   @default("Activo") // Activo | Inactivo (RN-002: baja lógica, nunca DELETE)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("beneficiarios")
+}
