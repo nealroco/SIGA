@@ -326,6 +326,40 @@ async function main() {
     });
   }
 
+  console.log("Seed: inventarios, dotación y lotes…");
+  const infraU = await prisma.usuario.findUnique({ where: { correo: "supervisor@siga.gov.co" } }); // placeholder hasta sembrar Infraestructura
+  const item1 = await prisma.item.upsert({ where: { codigo: "ITM-001" }, update: {}, create: { codigo: "ITM-001", nombre: "Balones de fútbol", categoria: "Deportivo", ubicacion: "Bodega central", cantidad: 80 } });
+  await prisma.item.upsert({ where: { codigo: "ITM-002" }, update: {}, create: { codigo: "ITM-002", nombre: "Uniformes talla M", categoria: "Dotación", ubicacion: "Bodega central", cantidad: 150 } });
+  const ben1 = await prisma.beneficiario.findFirst();
+  if (ben1) {
+    const dotEx = await prisma.dotacionEntrega.findFirst({ where: { beneficiarioId: ben1.id, itemId: item1.id } });
+    if (!dotEx) await prisma.dotacionEntrega.create({ data: { beneficiarioId: ben1.id, itemId: item1.id, cantidad: 1, createdById: infraU?.id ?? null } });
+  }
+  await prisma.lote.upsert({ where: { codigo: "LOT-001" }, update: {}, create: { codigo: "LOT-001", direccion: "Vía Soacha - Sibaté km 3", area: 4500, territorio: "Soacha" } });
+
+  console.log("Seed: escenarios, reservas y mantenimiento…");
+  let esc1 = await prisma.escenario.findFirst({ where: { nombre: "Coliseo Municipal" } });
+  if (!esc1) esc1 = await prisma.escenario.create({ data: { nombre: "Coliseo Municipal", tipo: "Coliseo", direccion: "Calle 10 # 5-20", capacidad: 800 } });
+  const esc2 = await prisma.escenario.findFirst({ where: { nombre: "Cancha sintética La Esperanza" } });
+  if (!esc2) await prisma.escenario.create({ data: { nombre: "Cancha sintética La Esperanza", tipo: "Cancha", direccion: "Barrio La Esperanza", capacidad: 50 } });
+
+  const resEx = await prisma.reservaEscenario.findFirst({ where: { escenarioId: esc1.id } });
+  if (!resEx) {
+    await prisma.reservaEscenario.create({
+      data: {
+        escenarioId: esc1.id, tipoUso: "Entrenamiento", periodo: "2026-01",
+        fechaInicio: new Date("2026-07-05T08:00:00"), fechaFin: new Date("2026-07-05T10:00:00"),
+        estado: "Activa", createdById: infraU?.id ?? null,
+      },
+    });
+  }
+  const mantEx = await prisma.mantenimiento.findFirst({ where: { escenarioId: esc1.id } });
+  if (!mantEx) {
+    await prisma.mantenimiento.create({
+      data: { escenarioId: esc1.id, tipo: "Programado", descripcion: "Mantenimiento de piso y graderías", fechaInicio: new Date("2026-06-01"), fechaFin: new Date("2026-06-03"), cerradoATiempo: true, costo: 2500000, estado: "Cerrado", createdById: infraU?.id ?? null },
+    });
+  }
+
   console.log("Seed completado ✓");
 }
 

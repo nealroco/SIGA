@@ -80,6 +80,13 @@ model Usuario {
   avancesCreados        AvanceMeta[]           @relation("avance_creador")
   avancesAprobados      AvanceMeta[]           @relation("avance_aprobador")
   analisisCreados       AnalisisImpacto[]      @relation("analisis_creador")
+  itemsCreados          Item[]                 @relation("item_creador")
+  dotacionesCreadas     DotacionEntrega[]      @relation("dotacion_creador")
+  lotesCreados          Lote[]                 @relation("lote_creador")
+  escenariosCreados     Escenario[]            @relation("escenario_creador")
+  reservasCreadas       ReservaEscenario[]     @relation("reserva_creador")
+  conflictosGenerados   LogConflicto[]         @relation("conflicto_usuario")
+  mantenimientosCreados Mantenimiento[]        @relation("mant_creador")
 
   @@map("usuarios")
 }
@@ -115,8 +122,129 @@ model Beneficiario {
   updatedAt  DateTime @updatedAt
   selecciones SeleccionBeneficiario[]
   seguimientos Seguimiento[]
+  dotaciones DotacionEntrega[]
 
   @@map("beneficiarios")
+}
+
+/// MOD-004 Inventarios — bienes y equipos
+model Item {
+  id        Int      @id @default(autoincrement())
+  codigo    String   @unique
+  nombre    String
+  categoria String?
+  ubicacion String?
+  cantidad  Int      @default(0)
+  estado    String   @default("Activo")
+  createdById Int?
+  createdAt DateTime @default(now())
+  createdBy Usuario? @relation("item_creador", fields: [createdById], references: [id])
+  dotaciones DotacionEntrega[]
+
+  @@map("items")
+}
+
+/// MOD-013 Dotación deportiva — entrega de ítems a beneficiarios
+model DotacionEntrega {
+  id            Int          @id @default(autoincrement())
+  beneficiarioId Int
+  itemId        Int
+  cantidad      Int          @default(1)
+  fechaEntrega  DateTime     @default(now())
+  estado        String       @default("Entregada") // Entregada | Devuelta
+  createdById   Int?
+  createdAt     DateTime     @default(now())
+  beneficiario  Beneficiario @relation(fields: [beneficiarioId], references: [id])
+  item          Item         @relation(fields: [itemId], references: [id])
+  createdBy     Usuario?     @relation("dotacion_creador", fields: [createdById], references: [id])
+
+  @@map("dotacion_entregas")
+}
+
+/// MOD-017 Gestión de lotes — predios/terrenos
+model Lote {
+  id          Int      @id @default(autoincrement())
+  codigo      String   @unique
+  direccion   String?
+  area        Float?
+  territorio  String?
+  estado      String   @default("Activo")
+  createdById Int?
+  createdAt   DateTime @default(now())
+  createdBy   Usuario? @relation("lote_creador", fields: [createdById], references: [id])
+
+  @@map("lotes")
+}
+
+/// Catálogo de escenarios deportivos (gestionado dentro de MOD-022 Reservas)
+model Escenario {
+  id          Int      @id @default(autoincrement())
+  nombre      String
+  tipo        String?  // Cancha | Coliseo | Piscina | Pista
+  direccion   String?
+  capacidad   Int?
+  estado      String   @default("Activo")
+  createdById Int?
+  createdAt   DateTime @default(now())
+  createdBy   Usuario?           @relation("escenario_creador", fields: [createdById], references: [id])
+  reservas    ReservaEscenario[]
+  mantenimientos Mantenimiento[]
+
+  @@map("escenarios")
+}
+
+/// MOD-022 Reservas escenario — RN-024 (anti-solapamiento + margen 30 min) y RN-024-B (override de emergencia, solo Administrador)
+model ReservaEscenario {
+  id           Int       @id @default(autoincrement())
+  escenarioId  Int
+  tipoUso      String?
+  fechaInicio  DateTime
+  fechaFin     DateTime
+  estado       String    @default("Activa") // Activa | Cancelada | Emergencia
+  periodo      String?
+  esEmergencia Boolean   @default(false)
+  motivoEmergencia String?
+  createdById  Int?
+  createdAt    DateTime  @default(now())
+  escenario    Escenario @relation(fields: [escenarioId], references: [id])
+  createdBy    Usuario?  @relation("reserva_creador", fields: [createdById], references: [id])
+
+  @@map("reservas_escenario")
+}
+
+/// DEP-031 — log de conflictos de reservas (rechazos por solapamiento y overrides de emergencia)
+model LogConflicto {
+  id                Int       @id @default(autoincrement())
+  escenarioId       Int
+  reservaExistenteId Int?
+  tipo              String    // Solapamiento | Override
+  fechaIntentoInicio DateTime?
+  fechaIntentoFin   DateTime?
+  motivo            String?
+  usuarioId         Int?
+  createdAt         DateTime  @default(now())
+  usuario           Usuario?  @relation("conflicto_usuario", fields: [usuarioId], references: [id])
+
+  @@map("log_conflictos")
+}
+
+/// MOD-023 Mantenimiento de escenarios — alimenta KPI-029b (mantenimientos a tiempo)
+model Mantenimiento {
+  id              Int       @id @default(autoincrement())
+  escenarioId     Int
+  tipo            String    @default("Programado") // Programado | Correctivo | Emergencia
+  descripcion     String?
+  fechaInicio     DateTime?
+  fechaFin        DateTime?
+  cerradoATiempo  Boolean?
+  costo           Float     @default(0)
+  estado          String    @default("Programado") // Programado | En curso | Cerrado
+  createdById     Int?
+  createdAt       DateTime  @default(now())
+  escenario       Escenario @relation(fields: [escenarioId], references: [id])
+  createdBy       Usuario?  @relation("mant_creador", fields: [createdById], references: [id])
+
+  @@map("mantenimientos")
 }
 
 /// Tercero contratado (ESAL / operador / persona)
