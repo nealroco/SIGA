@@ -256,6 +256,58 @@ async function main() {
     if (!segEx) await prisma.seguimiento.create({ data: { beneficiarioId: ben.id, programa: ben.programa, actividad: "Sesión de entrenamiento inicial", estado: "Registrado", fecha: new Date(), createdById: supU?.id ?? null } });
   }
 
+  console.log("Seed: fuentes de financiación y rubros…");
+  const finU = await prisma.usuario.findUnique({ where: { correo: "financiera@siga.gov.co" } });
+  const adminU2 = await prisma.usuario.findUnique({ where: { correo: "admin@siga.gov.co" } });
+  const FUENTES: [string, string, string, number, string][] = [
+    ["FUE-001", "Nación — Mindeporte", "Nación", 300000000, "2026"],
+    ["FUE-002", "Recursos propios ESAL-JDEC", "Propios", 80000000, "2026"],
+  ];
+  const fuenteByCodigo: Record<string, number> = {};
+  for (const [codigo, nombre, tipo, valorDisponible, vigencia] of FUENTES) {
+    const f = await prisma.fuenteFinanciacion.upsert({
+      where: { codigo },
+      update: {},
+      create: { codigo, nombre, tipo, valorDisponible, vigencia, estado: "Aprobada", createdById: finU?.id ?? null, aprobadoById: adminU2?.id ?? null, aprobadoEn: new Date() },
+    });
+    fuenteByCodigo[codigo] = f.id;
+  }
+  const RUBROS: [string, string, string, number][] = [
+    ["RUB-001", "Operación escuelas deportivas", "FUE-001", 150000000],
+    ["RUB-002", "Dotación e implementos", "FUE-002", 40000000],
+  ];
+  const rubroByCodigo: Record<string, number> = {};
+  for (const [codigo, nombre, fuenteCod, valorAsignado] of RUBROS) {
+    const r = await prisma.rubro.upsert({ where: { codigo }, update: {}, create: { codigo, nombre, fuenteId: fuenteByCodigo[fuenteCod], valorAsignado } });
+    rubroByCodigo[codigo] = r.id;
+  }
+
+  console.log("Seed: póliza, cuenta de cobro y pago de muestra…");
+  const c1b = await prisma.contrato.findUnique({ where: { numero: "CTO-2026-001" } });
+  if (c1b) {
+    const polEx = await prisma.poliza.findFirst({ where: { contratoId: c1b.id } });
+    if (!polEx) {
+      await prisma.poliza.create({
+        data: {
+          contratoId: c1b.id, tipo: "Cumplimiento", aseguradora: "Seguros Andinos",
+          valor: 12000000, vigenciaDesde: new Date("2026-01-01"), vigenciaHasta: new Date("2026-12-31"),
+          estado: "Aprobada", createdById: finU?.id ?? null, aprobadoById: adminU2?.id ?? null, aprobadoEn: new Date(),
+        },
+      });
+    }
+    const cuentaEx = await prisma.cuentaCobro.findFirst({ where: { contratoId: c1b.id, periodo: "2026-01" } });
+    if (!cuentaEx) {
+      const cta = await prisma.cuentaCobro.create({
+        data: {
+          contratoId: c1b.id, rubroId: rubroByCodigo["RUB-001"], periodo: "2026-01",
+          valorCobrado: 10000000, valorAprobado: 10000000, estado: "Aprobada",
+          createdById: finU?.id ?? null, aprobadoById: adminU2?.id ?? null, aprobadoEn: new Date(),
+        },
+      });
+      await prisma.pago.create({ data: { cuentaCobroId: cta.id, valorPagado: 4000000, comprobante: "CE-0001", medioPago: "Transferencia", createdById: finU?.id ?? null } });
+    }
+  }
+
   console.log("Seed completado ✓");
 }
 

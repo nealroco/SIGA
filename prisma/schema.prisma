@@ -68,6 +68,15 @@ model Usuario {
   seleccionesAprobadas  SeleccionBeneficiario[] @relation("sel_aprobador")
   seguimientosCreados   Seguimiento[]          @relation("seg_creador")
   informesCreados       Informe[]              @relation("inf_creador")
+  fuentesCreadas        FuenteFinanciacion[]   @relation("fuente_creador")
+  fuentesAprobadas      FuenteFinanciacion[]   @relation("fuente_aprobador")
+  cuentasCreadas        CuentaCobro[]          @relation("cuenta_creador")
+  cuentasAprobadas      CuentaCobro[]          @relation("cuenta_aprobador")
+  pagosRegistrados      Pago[]                 @relation("pago_creador")
+  polizasCreadas        Poliza[]               @relation("poliza_creador")
+  polizasAprobadas      Poliza[]               @relation("poliza_aprobador")
+  secopCreados          RegistroSecop[]        @relation("secop_creador")
+  secopAprobados        RegistroSecop[]        @relation("secop_aprobador")
 
   @@map("usuarios")
 }
@@ -141,8 +150,128 @@ model Contrato {
   aprobadoBy    Usuario?  @relation("aprobador", fields: [aprobadoById], references: [id])
   informes      Informe[]
   documentos    Documento[]
+  cuentasCobro  CuentaCobro[]
+  polizas       Poliza[]
+  registrosSecop RegistroSecop[]
 
   @@map("contratos")
+}
+
+/// MOD-020 Fuentes de financiación — RN-025: Financiera registra (E), Administrador aprueba (A)
+model FuenteFinanciacion {
+  id              Int       @id @default(autoincrement())
+  codigo          String    @unique
+  nombre          String
+  tipo            String?   // Nación | Departamento | Municipio | Cooperación | Propios
+  valorDisponible Float     @default(0)
+  vigencia        String?
+  estado          String    @default("Registrada") // Registrada | Aprobada | Rechazada
+  motivoRechazo   String?
+  createdById     Int?
+  aprobadoById    Int?
+  aprobadoEn      DateTime?
+  createdAt       DateTime  @default(now())
+  createdBy       Usuario?  @relation("fuente_creador", fields: [createdById], references: [id])
+  aprobadoBy      Usuario?  @relation("fuente_aprobador", fields: [aprobadoById], references: [id])
+  rubros          Rubro[]
+
+  @@map("fuentes_financiacion")
+}
+
+/// Rubro presupuestal — agrupado bajo una fuente
+model Rubro {
+  id              Int      @id @default(autoincrement())
+  codigo          String   @unique
+  nombre          String
+  fuenteId        Int
+  valorAsignado   Float    @default(0)
+  vigencia        String?
+  createdAt       DateTime @default(now())
+  fuente          FuenteFinanciacion @relation(fields: [fuenteId], references: [id])
+  cuentas         CuentaCobro[]
+
+  @@map("rubros")
+}
+
+/// MOD-003 Financiera — cuenta de cobro: RN-005 (contrato activo), RN-006 (informe aprobado),
+/// RN-007 (imputada a rubro), RN-018 (bloqueo por póliza vencida). RN-025: Financiera registra, Administrador aprueba.
+model CuentaCobro {
+  id            Int       @id @default(autoincrement())
+  contratoId    Int
+  informeId     Int?
+  rubroId       Int
+  periodo       String
+  valorCobrado  Float     @default(0)
+  valorAprobado Float?
+  estado        String    @default("Registrada") // Registrada | Aprobada | Rechazada | Pagada
+  motivoRechazo String?
+  createdById   Int?
+  aprobadoById  Int?
+  aprobadoEn    DateTime?
+  createdAt     DateTime  @default(now())
+  contrato      Contrato  @relation(fields: [contratoId], references: [id])
+  rubro         Rubro     @relation(fields: [rubroId], references: [id])
+  createdBy     Usuario?  @relation("cuenta_creador", fields: [createdById], references: [id])
+  aprobadoBy    Usuario?  @relation("cuenta_aprobador", fields: [aprobadoById], references: [id])
+  pagos         Pago[]
+
+  @@map("cuentas_cobro")
+}
+
+/// Pago contra una cuenta de cobro aprobada — RN-008 (≤ valor aprobado), RN-009 (≤ saldo de rubro), RN-023 (no negativo)
+model Pago {
+  id            Int         @id @default(autoincrement())
+  cuentaCobroId Int
+  valorPagado   Float
+  fechaPago     DateTime    @default(now())
+  comprobante   String?
+  medioPago     String?     // Transferencia | Cheque | PSE
+  createdById   Int?
+  createdAt     DateTime    @default(now())
+  cuentaCobro   CuentaCobro @relation(fields: [cuentaCobroId], references: [id])
+  createdBy     Usuario?    @relation("pago_creador", fields: [createdById], references: [id])
+
+  @@map("pagos")
+}
+
+/// MOD-014 Control de pólizas — RN-018 (vigente para aprobar cuentas). RN-025: Financiera registra, Administrador aprueba.
+model Poliza {
+  id             Int       @id @default(autoincrement())
+  contratoId     Int
+  tipo           String?   // Cumplimiento | Responsabilidad civil | Calidad
+  aseguradora    String?
+  valor          Float     @default(0)
+  vigenciaDesde  DateTime?
+  vigenciaHasta  DateTime?
+  estado         String    @default("Registrada") // Registrada | Aprobada | Rechazada
+  motivoRechazo  String?
+  createdById    Int?
+  aprobadoById   Int?
+  aprobadoEn     DateTime?
+  createdAt      DateTime  @default(now())
+  contrato       Contrato  @relation(fields: [contratoId], references: [id])
+  createdBy      Usuario?  @relation("poliza_creador", fields: [createdById], references: [id])
+  aprobadoBy     Usuario?  @relation("poliza_aprobador", fields: [aprobadoById], references: [id])
+
+  @@map("polizas")
+}
+
+/// MOD-027 Integración SECOP II — RN-025: Financiera registra, Administrador aprueba.
+model RegistroSecop {
+  id            Int       @id @default(autoincrement())
+  contratoId    Int
+  procesoSecop  String
+  estadoSync    String    @default("Registrado") // Registrado | Aprobado | Rechazado | Sincronizado
+  motivoRechazo String?
+  createdById   Int?
+  aprobadoById  Int?
+  aprobadoEn    DateTime?
+  createdAt     DateTime  @default(now())
+  contrato      Contrato  @relation(fields: [contratoId], references: [id])
+  createdBy     Usuario?  @relation("secop_creador", fields: [createdById], references: [id])
+  aprobadoBy    Usuario?  @relation("secop_aprobador", fields: [aprobadoById], references: [id])
+
+  @@map("registros_secop")
 }
 
 /// MOD-002 Personal — hoja de vida y vinculación
