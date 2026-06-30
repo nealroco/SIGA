@@ -222,6 +222,40 @@ async function main() {
     }
   }
 
+  console.log("Seed: personal…");
+  const PERSONAL: [string, string, string, string, string][] = [
+    ["52111222", "Diana Torres", "Profesional de apoyo", "Administrativa", "Contratista"],
+    ["80333444", "Carlos Méndez", "Coordinador de programa", "Deportiva", "OPS"],
+    ["43555666", "Lucía Ramírez", "Entrenadora", "Deportiva", "OPS"],
+  ];
+  for (const [documento, nombre, cargo, perfil, tipoVinculacion] of PERSONAL) {
+    await prisma.personal.upsert({ where: { documento }, update: {}, create: { documento, nombre, cargo, perfil, tipoVinculacion } });
+  }
+
+  console.log("Seed: expediente documental + informe + seguimiento…");
+  const supU = await prisma.usuario.findUnique({ where: { correo: "supervisor@siga.gov.co" } });
+  const c1 = await prisma.contrato.findUnique({ where: { numero: "CTO-2026-001" } });
+  if (c1) {
+    const DOCS: [string, boolean, string][] = [
+      ["Contrato firmado", true, "Aprobado"],
+      ["Registro presupuestal / RP", true, "Aprobado"],
+      ["Acta de inicio", true, "Cargado"],
+      ["Póliza", false, "Pendiente"],
+      ["Informe mensual", true, "Pendiente"],
+    ];
+    for (const [tipoDocumento, obligatorio, estado] of DOCS) {
+      const ex = await prisma.documento.findFirst({ where: { contratoId: c1.id, tipoDocumento } });
+      if (!ex) await prisma.documento.create({ data: { contratoId: c1.id, tipoDocumento, obligatorio, estado } });
+    }
+    const infEx = await prisma.informe.findFirst({ where: { contratoId: c1.id, periodo: "2026-01" } });
+    if (!infEx) await prisma.informe.create({ data: { contratoId: c1.id, periodo: "2026-01", estado: "Radicado", fechaRadicacion: new Date(), createdById: supU?.id ?? null } });
+  }
+  const ben = await prisma.beneficiario.findFirst();
+  if (ben) {
+    const segEx = await prisma.seguimiento.findFirst({ where: { beneficiarioId: ben.id } });
+    if (!segEx) await prisma.seguimiento.create({ data: { beneficiarioId: ben.id, programa: ben.programa, actividad: "Sesión de entrenamiento inicial", estado: "Registrado", fecha: new Date(), createdById: supU?.id ?? null } });
+  }
+
   console.log("Seed completado ✓");
 }
 

@@ -7,9 +7,13 @@ export type ModuloNav = { codigo: string; nombre: string; nivel: string };
 
 function hrefFor(codigo: string): string {
   if (codigo === "MOD-001") return "/beneficiarios";
+  if (codigo === "MOD-002") return "/personal";
+  if (codigo === "MOD-005") return "/documental";
+  if (codigo === "MOD-006") return "/informes";
   if (codigo === "MOD-007") return "/dashboard";
   if (codigo === "MOD-008") return "/convocatorias";
   if (codigo === "MOD-010") return "/contratos";
+  if (codigo === "MOD-011") return "/seguimiento";
   if (codigo === "MOD-028") return "/admin/permisos";
   return `/modulo/${codigo}`;
 }

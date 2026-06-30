@@ -66,6 +66,8 @@ model Usuario {
   convocatoriasCreadas Convocatoria[] @relation("conv_creador")
   seleccionesPropuestas SeleccionBeneficiario[] @relation("sel_proponente")
   seleccionesAprobadas  SeleccionBeneficiario[] @relation("sel_aprobador")
+  seguimientosCreados   Seguimiento[]          @relation("seg_creador")
+  informesCreados       Informe[]              @relation("inf_creador")
 
   @@map("usuarios")
 }
@@ -100,6 +102,7 @@ model Beneficiario {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   selecciones SeleccionBeneficiario[]
+  seguimientos Seguimiento[]
 
   @@map("beneficiarios")
 }
@@ -136,8 +139,95 @@ model Contrato {
   tercero       Tercero   @relation(fields: [terceroId], references: [id])
   createdBy     Usuario?  @relation("registrante", fields: [createdById], references: [id])
   aprobadoBy    Usuario?  @relation("aprobador", fields: [aprobadoById], references: [id])
+  informes      Informe[]
+  documentos    Documento[]
 
   @@map("contratos")
+}
+
+/// MOD-002 Personal — hoja de vida y vinculación
+model Personal {
+  id              Int      @id @default(autoincrement())
+  documento       String   @unique
+  nombre          String
+  cargo           String?
+  perfil          String?
+  tipoVinculacion String?  // Planta | Contratista | OPS
+  fechaIngreso    DateTime?
+  correo          String?
+  telefono        String?
+  estado          String   @default("Activo")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("personal")
+}
+
+/// MOD-011 Seguimiento — actividades por beneficiario/programa
+model Seguimiento {
+  id             Int          @id @default(autoincrement())
+  beneficiarioId Int
+  programa       String?
+  fecha          DateTime?
+  actividad      String
+  observacion    String?
+  estado         String       @default("Registrado")
+  createdById    Int?
+  createdAt      DateTime     @default(now())
+  beneficiario   Beneficiario @relation(fields: [beneficiarioId], references: [id])
+  createdBy      Usuario?     @relation("seg_creador", fields: [createdById], references: [id])
+
+  @@map("seguimientos")
+}
+
+/// MOD-006 Informes — informes de ejecución por contrato/periodo
+model Informe {
+  id                  Int       @id @default(autoincrement())
+  contratoId          Int
+  periodo             String // p. ej. 2026-01
+  fechaRadicacion     DateTime?
+  estado              String    @default("Radicado") // Radicado | Aprobado | Devuelto | Con observaciones
+  observacion         String?
+  periodoCerrado      Boolean   @default(false) // RN-022
+  certificadoGenerado Boolean   @default(false) // RN-023/RN-026
+  createdById         Int?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  contrato            Contrato  @relation(fields: [contratoId], references: [id])
+  createdBy           Usuario?  @relation("inf_creador", fields: [createdById], references: [id])
+
+  @@map("informes")
+}
+
+/// MOD-005 Documental — expediente documental por contrato (con versionado)
+model Documento {
+  id            Int                @id @default(autoincrement())
+  contratoId    Int
+  tipoDocumento String
+  obligatorio   Boolean            @default(false)
+  estado        String             @default("Pendiente") // Pendiente | Cargado | En revisión | Aprobado | Rechazado | Con observaciones
+  archivoUrl    String?
+  observacion   String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  contrato      Contrato           @relation(fields: [contratoId], references: [id])
+  versiones     VersionDocumento[]
+
+  @@map("documentos")
+}
+
+/// Versiones de un documento — RN-012: nunca se sobrescribe la evidencia histórica
+model VersionDocumento {
+  id           Int       @id @default(autoincrement())
+  documentoId  Int
+  archivoUrl   String?
+  version      Int       @default(1)
+  usuarioCarga String?
+  nota         String?
+  createdAt    DateTime  @default(now())
+  documento    Documento @relation(fields: [documentoId], references: [id], onDelete: Cascade)
+
+  @@map("versiones_documento")
 }
 
 /// MOD-008 Convocatorias — RN-027: Supervisor selecciona (E), Administrador aprueba (A)

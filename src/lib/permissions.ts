@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 
 export type Nivel = "E" | "A" | "L" | "C" | "NONE";
-export type Accion = "ver" | "crear" | "editar" | "eliminar" | "aprobar";
+export type Accion = "ver" | "crear" | "editar" | "eliminar" | "aprobar" | "cargar";
 
 /** Niveles que satisfacen cada acción (RN-015: los permisos de rol prevalecen). */
 const REQUISITO: Record<Accion, Nivel[]> = {
@@ -10,6 +10,7 @@ const REQUISITO: Record<Accion, Nivel[]> = {
   editar: ["E"],
   eliminar: ["E"], // la "eliminación" es baja lógica (RN-002)
   aprobar: ["A"], // SoD (RN-025): aprobar exige nivel Aprobación, distinto de quien registra (E)
+  cargar: ["E", "C"], // carga de archivos/versiones (p. ej. MOD-005 Documental)
 };
 
 /** Mapa codigo_modulo -> nivel para un rol. */

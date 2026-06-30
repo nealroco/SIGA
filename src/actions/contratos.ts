@@ -84,6 +84,19 @@ export async function crearContrato(_prev: FormState, fd: FormData): Promise<For
       createdById: Number(session.user.id),
     },
   });
+  // RN-017: el expediente documental se genera automáticamente al crear el contrato (MOD-005)
+  const EXPEDIENTE: [string, boolean][] = [
+    ["Minuta del contrato", true],
+    ["Contrato firmado", true],
+    ["Registro presupuestal / RP", true],
+    ["Acta de inicio", true],
+    ["Designación de supervisor", true],
+    ["Póliza", false],
+    ["Informe mensual", true],
+  ];
+  await prisma.documento.createMany({
+    data: EXPEDIENTE.map(([tipoDocumento, obligatorio]) => ({ contratoId: creado.id, tipoDocumento, obligatorio })),
+  });
   await writeAudit({ usuarioId: Number(session.user.id), accion: "crear", modulo: MOD, registroId: creado.id, valorNuevo: { numero: d.numero, valorTotal: d.valorTotal, estado: "Registrado" } });
   revalidatePath("/contratos");
   redirect("/contratos");
