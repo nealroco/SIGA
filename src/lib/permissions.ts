@@ -9,7 +9,7 @@ const REQUISITO: Record<Accion, Nivel[]> = {
   crear: ["E"],
   editar: ["E"],
   eliminar: ["E"], // la "eliminación" es baja lógica (RN-002)
-  aprobar: ["A", "E"],
+  aprobar: ["A"], // SoD (RN-025): aprobar exige nivel Aprobación, distinto de quien registra (E)
 };
 
 /** Mapa codigo_modulo -> nivel para un rol. */

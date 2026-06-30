@@ -61,6 +61,8 @@ model Usuario {
   createdAt    DateTime   @default(now())
   rol          Rol        @relation(fields: [rolId], references: [id])
   auditorias   AuditLog[]
+  contratosRegistrados Contrato[] @relation("registrante")
+  contratosAprobados   Contrato[] @relation("aprobador")
 
   @@map("usuarios")
 }
@@ -96,4 +98,40 @@ model Beneficiario {
   updatedAt  DateTime @updatedAt
 
   @@map("beneficiarios")
+}
+
+/// Tercero contratado (ESAL / operador / persona)
+model Tercero {
+  id          Int        @id @default(autoincrement())
+  documento   String     @unique
+  razonSocial String
+  tipo        String     @default("ESAL") // ESAL | Persona natural | Empresa
+  estado      String     @default("Activo")
+  contratos   Contrato[]
+
+  @@map("terceros")
+}
+
+/// MOD-010 Contratos — flujo RN-025 (doble aprobación: Financiera registra, Administrador aprueba)
+model Contrato {
+  id            Int       @id @default(autoincrement())
+  numero        String    @unique
+  objeto        String
+  terceroId     Int
+  valorTotal    Float     @default(0)
+  fechaInicio   DateTime?
+  fechaFin      DateTime?
+  supervisor    String?
+  estado        String    @default("Registrado") // Registrado | Aprobado | Rechazado | Cerrado
+  motivoRechazo String?
+  createdById   Int?
+  aprobadoById  Int?
+  aprobadoEn    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  tercero       Tercero   @relation(fields: [terceroId], references: [id])
+  createdBy     Usuario?  @relation("registrante", fields: [createdById], references: [id])
+  aprobadoBy    Usuario?  @relation("aprobador", fields: [aprobadoById], references: [id])
+
+  @@map("contratos")
 }

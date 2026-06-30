@@ -138,6 +138,7 @@ async function main() {
     ["Admin SIGA", "admin@siga.gov.co", "Administrador"],
     ["Carolina Revisora", "revisor@siga.gov.co", "Revisor"],
     ["Coord. Deportiva", "coord@siga.gov.co", "Coord. deportiva"],
+    ["Fernanda Financiera", "financiera@siga.gov.co", "Financiera"],
   ];
   for (const [nombre, correo, rol] of usuarios) {
     await prisma.usuario.upsert({
@@ -160,6 +161,47 @@ async function main() {
         programa: programa as string,
         territorio: territorio as string,
         acudiente: acudiente as string,
+      },
+    });
+  }
+
+  console.log("Seed: terceros…");
+  const TERCEROS: [string, string, string][] = [
+    ["8001234567", "Fundación Deporte y Vida", "ESAL"],
+    ["9009876543", "Corporación Atlética Andina", "ESAL"],
+    ["79123456", "Juan Carlos Méndez", "Persona natural"],
+  ];
+  const terceroByDoc: Record<string, number> = {};
+  for (const [documento, razonSocial, tipo] of TERCEROS) {
+    const t = await prisma.tercero.upsert({
+      where: { documento },
+      update: { razonSocial, tipo },
+      create: { documento, razonSocial, tipo },
+    });
+    terceroByDoc[documento] = t.id;
+  }
+
+  console.log("Seed: contratos de muestra…");
+  const fin = await prisma.usuario.findUnique({ where: { correo: "financiera@siga.gov.co" } });
+  const adminU = await prisma.usuario.findUnique({ where: { correo: "admin@siga.gov.co" } });
+  const CONTRATOS: [string, string, string, number, string][] = [
+    ["CTO-2026-001", "Operación de escuelas de fútbol — Soacha", "8001234567", 120000000, "Registrado"],
+    ["CTO-2026-002", "Dotación deportiva para programas de atletismo", "9009876543", 85000000, "Aprobado"],
+    ["CTO-2026-003", "Servicios profesionales de seguimiento", "79123456", 36000000, "Registrado"],
+  ];
+  for (const [numero, objeto, terceroDoc, valorTotal, estado] of CONTRATOS) {
+    await prisma.contrato.upsert({
+      where: { numero },
+      update: {},
+      create: {
+        numero,
+        objeto,
+        terceroId: terceroByDoc[terceroDoc],
+        valorTotal,
+        estado,
+        createdById: fin?.id ?? null,
+        aprobadoById: estado === "Aprobado" ? adminU?.id ?? null : null,
+        aprobadoEn: estado === "Aprobado" ? new Date() : null,
       },
     });
   }
