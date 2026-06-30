@@ -360,6 +360,37 @@ async function main() {
     });
   }
 
+  console.log("Seed: territorios…");
+  const TERRITORIOS: [string, string, string, number, number, number][] = [
+    ["TER-001", "Soacha", "Comuna 4", 450000, 4.5789, -74.2169],
+    ["TER-002", "Bogotá", "Bosa", 700000, 4.6181, -74.1772],
+  ];
+  for (const [codigo, municipio, zona, poblacion, lat, lng] of TERRITORIOS) {
+    await prisma.territorio.upsert({ where: { codigo }, update: {}, create: { codigo, municipio, zona, poblacion, lat, lng } });
+  }
+
+  console.log("Seed: evaluación ESAL y psicosocial…");
+  const adminU4 = await prisma.usuario.findUnique({ where: { correo: "admin@siga.gov.co" } });
+  const supU2 = await prisma.usuario.findUnique({ where: { correo: "supervisor@siga.gov.co" } });
+  const tercero1 = await prisma.tercero.findFirst();
+  if (tercero1) {
+    const evEx = await prisma.evaluacionEsal.findFirst({ where: { terceroId: tercero1.id } });
+    if (!evEx) {
+      await prisma.evaluacionEsal.create({
+        data: { terceroId: tercero1.id, criterio: "Capacidad operativa y experiencia", puntaje: 88, estado: "Aprobada", createdById: adminU4?.id ?? null, aprobadoById: supU2?.id ?? null, aprobadoEn: new Date() },
+      });
+    }
+  }
+  const ben2 = await prisma.beneficiario.findFirst({ skip: 1 });
+  if (ben2) {
+    const psicEx = await prisma.evaluacionPsicosocial.findFirst({ where: { beneficiarioId: ben2.id } });
+    if (!psicEx) {
+      await prisma.evaluacionPsicosocial.create({
+        data: { beneficiarioId: ben2.id, fecha: new Date(), instrumento: "SUSESO-ISTAS21 adaptado", resultado: "Riesgo bajo", estado: "Revisada", createdById: adminU4?.id ?? null },
+      });
+    }
+  }
+
   console.log("Seed completado ✓");
 }
 

@@ -87,6 +87,10 @@ model Usuario {
   reservasCreadas       ReservaEscenario[]     @relation("reserva_creador")
   conflictosGenerados   LogConflicto[]         @relation("conflicto_usuario")
   mantenimientosCreados Mantenimiento[]        @relation("mant_creador")
+  territoriosCreados    Territorio[]           @relation("territorio_creador")
+  evaluacionesEsalCreadas  EvaluacionEsal[]     @relation("evalesal_creador")
+  evaluacionesEsalAprobadas EvaluacionEsal[]    @relation("evalesal_aprobador")
+  evaluacionesPsicCreadas EvaluacionPsicosocial[] @relation("evalpsico_creador")
 
   @@map("usuarios")
 }
@@ -123,6 +127,7 @@ model Beneficiario {
   selecciones SeleccionBeneficiario[]
   seguimientos Seguimiento[]
   dotaciones DotacionEntrega[]
+  evaluacionesPsicosociales EvaluacionPsicosocial[]
 
   @@map("beneficiarios")
 }
@@ -184,6 +189,8 @@ model Escenario {
   direccion   String?
   capacidad   Int?
   estado      String   @default("Activo")
+  lat         Float?   // MOD-024 Georeferenciación
+  lng         Float?
   createdById Int?
   createdAt   DateTime @default(now())
   createdBy   Usuario?           @relation("escenario_creador", fields: [createdById], references: [id])
@@ -191,6 +198,61 @@ model Escenario {
   mantenimientos Mantenimiento[]
 
   @@map("escenarios")
+}
+
+/// MOD-012 Caracterización territorial — también alimenta MOD-024 Georeferenciación (lat/lng)
+model Territorio {
+  id          Int      @id @default(autoincrement())
+  codigo      String   @unique
+  municipio   String
+  zona        String?
+  poblacion   Int?
+  lat         Float?
+  lng         Float?
+  estado      String   @default("Activo")
+  createdById Int?
+  createdAt   DateTime @default(now())
+  createdBy   Usuario? @relation("territorio_creador", fields: [createdById], references: [id])
+
+  @@map("territorios")
+}
+
+/// MOD-009 Evaluación ESAL — RN-025-style SoD: Administrador registra (E), Supervisor aprueba (A)
+model EvaluacionEsal {
+  id              Int           @id @default(autoincrement())
+  terceroId       Int
+  convocatoriaId  Int?
+  criterio        String?
+  puntaje         Float?
+  estado          String        @default("Registrada") // Registrada | Aprobada | Rechazada
+  motivoRechazo   String?
+  createdById     Int?
+  aprobadoById    Int?
+  aprobadoEn      DateTime?
+  createdAt       DateTime      @default(now())
+  tercero         Tercero       @relation(fields: [terceroId], references: [id])
+  convocatoria    Convocatoria? @relation(fields: [convocatoriaId], references: [id])
+  createdBy       Usuario?      @relation("evalesal_creador", fields: [createdById], references: [id])
+  aprobadoBy      Usuario?      @relation("evalesal_aprobador", fields: [aprobadoById], references: [id])
+
+  @@map("evaluaciones_esal")
+}
+
+/// MOD-018 Eval. psicosocial — sin nivel A en la matriz (varios roles con E)
+model EvaluacionPsicosocial {
+  id             Int          @id @default(autoincrement())
+  beneficiarioId Int
+  fecha          DateTime?
+  instrumento    String?
+  resultado      String?
+  estado         String       @default("Registrada") // Registrada | Revisada
+  observacion    String?
+  createdById    Int?
+  createdAt      DateTime     @default(now())
+  beneficiario   Beneficiario @relation(fields: [beneficiarioId], references: [id])
+  createdBy      Usuario?     @relation("evalpsico_creador", fields: [createdById], references: [id])
+
+  @@map("evaluaciones_psicosociales")
 }
 
 /// MOD-022 Reservas escenario — RN-024 (anti-solapamiento + margen 30 min) y RN-024-B (override de emergencia, solo Administrador)
@@ -255,6 +317,7 @@ model Tercero {
   tipo        String     @default("ESAL") // ESAL | Persona natural | Empresa
   estado      String     @default("Activo")
   contratos   Contrato[]
+  evaluacionesEsal EvaluacionEsal[]
 
   @@map("terceros")
 }
@@ -556,6 +619,7 @@ model Convocatoria {
   updatedAt     DateTime  @updatedAt
   createdBy     Usuario?               @relation("conv_creador", fields: [createdById], references: [id])
   selecciones   SeleccionBeneficiario[]
+  evaluacionesEsal EvaluacionEsal[]
 
   @@map("convocatorias")
 }
