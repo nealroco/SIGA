@@ -77,6 +77,9 @@ model Usuario {
   polizasAprobadas      Poliza[]               @relation("poliza_aprobador")
   secopCreados          RegistroSecop[]        @relation("secop_creador")
   secopAprobados        RegistroSecop[]        @relation("secop_aprobador")
+  avancesCreados        AvanceMeta[]           @relation("avance_creador")
+  avancesAprobados      AvanceMeta[]           @relation("avance_aprobador")
+  analisisCreados       AnalisisImpacto[]      @relation("analisis_creador")
 
   @@map("usuarios")
 }
@@ -155,6 +158,57 @@ model Contrato {
   registrosSecop RegistroSecop[]
 
   @@map("contratos")
+}
+
+/// MOD-016 Indicadores físicos — metas programadas. Sin nivel A en la matriz (varios roles con E);
+/// la aprobación del avance usa el mismo nivel E (sin SoD de doble control aquí).
+model IndicadorFisico {
+  id         Int           @id @default(autoincrement())
+  codigo     String        @unique
+  nombre     String
+  unidad     String?       // cupos | sesiones | beneficiarios | eventos
+  programado Float         @default(0)
+  periodo    String
+  estado     String        @default("Activo")
+  createdAt  DateTime      @default(now())
+  avances    AvanceMeta[]
+
+  @@map("indicadores_fisicos")
+}
+
+/// Avance reportado sobre un indicador — RN-011: solo lo Aprobado suma al cumplimiento.
+model AvanceMeta {
+  id                Int             @id @default(autoincrement())
+  indicadorId       Int
+  cantidadReportada Float
+  cantidadAprobada  Float?
+  estado            String          @default("Reportado") // Reportado | Aprobado | Rechazado
+  periodo           String?
+  motivoRechazo     String?
+  createdById       Int?
+  aprobadoById      Int?
+  aprobadoEn        DateTime?
+  createdAt         DateTime        @default(now())
+  indicador         IndicadorFisico @relation(fields: [indicadorId], references: [id])
+  createdBy         Usuario?        @relation("avance_creador", fields: [createdById], references: [id])
+  aprobadoBy        Usuario?        @relation("avance_aprobador", fields: [aprobadoById], references: [id])
+
+  @@map("avances_meta")
+}
+
+/// MOD-025 Análisis de impacto — RN-021: alerta de desviación gasto financiero vs cumplimiento físico.
+model AnalisisImpacto {
+  id                 Int      @id @default(autoincrement())
+  periodo            String
+  gastoEjecutado     Float    @default(0)
+  cumplimientoFisico Float    @default(0) // % 0-100
+  ejecucionFinanciera Float   @default(0) // % 0-100
+  desviacion         Float    @default(0) // ejecucionFinanciera - cumplimientoFisico
+  createdById        Int?
+  createdAt          DateTime @default(now())
+  createdBy          Usuario? @relation("analisis_creador", fields: [createdById], references: [id])
+
+  @@map("analisis_impacto")
 }
 
 /// MOD-020 Fuentes de financiación — RN-025: Financiera registra (E), Administrador aprueba (A)

@@ -16,7 +16,9 @@ function hrefFor(codigo: string): string {
   if (codigo === "MOD-010") return "/contratos";
   if (codigo === "MOD-011") return "/seguimiento";
   if (codigo === "MOD-014") return "/polizas";
+  if (codigo === "MOD-016") return "/indicadores";
   if (codigo === "MOD-020") return "/fuentes";
+  if (codigo === "MOD-025") return "/impacto";
   if (codigo === "MOD-027") return "/secop";
   if (codigo === "MOD-028") return "/admin/permisos";
   return `/modulo/${codigo}`;

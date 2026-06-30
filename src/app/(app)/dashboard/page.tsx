@@ -3,15 +3,32 @@ import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+const cop = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+
 export default async function DashboardPage() {
-  const [total, activos, inactivos, modulos, roles, porPrograma] = await Promise.all([
+  const [
+    total, activos, inactivos, modulos, roles, porPrograma,
+    contratosActivos, contratosPendientes,
+    cuentas, pagos, docsAprobados, docsTotal,
+  ] = await Promise.all([
     prisma.beneficiario.count(),
     prisma.beneficiario.count({ where: { estado: "Activo" } }),
     prisma.beneficiario.count({ where: { estado: "Inactivo" } }),
     prisma.modulo.count(),
     prisma.rol.count(),
     prisma.beneficiario.groupBy({ by: ["programa"], _count: { _all: true }, where: { estado: "Activo" } }),
+    prisma.contrato.count({ where: { estado: "Aprobado" } }),
+    prisma.contrato.count({ where: { estado: "Registrado" } }),
+    prisma.cuentaCobro.findMany({ select: { valorAprobado: true, valorCobrado: true } }),
+    prisma.pago.findMany({ select: { valorPagado: true } }),
+    prisma.documento.count({ where: { estado: "Aprobado" } }),
+    prisma.documento.count(),
   ]);
+
+  const totalAprobado = cuentas.reduce((acc, c) => acc + (c.valorAprobado ?? c.valorCobrado ?? 0), 0);
+  const totalPagado = pagos.reduce((acc, p) => acc + p.valorPagado, 0);
+  const pctEjecucion = totalAprobado > 0 ? Math.round((totalPagado / totalAprobado) * 100) : 0;
+  const pctDocumental = docsTotal > 0 ? Math.round((docsAprobados / docsTotal) * 100) : 0;
 
   return (
     <div>
@@ -38,6 +55,27 @@ export default async function DashboardPage() {
           <div className="lab">Módulos</div>
           <div className="val">{modulos}</div>
           <div className="hint">{roles} roles · matriz 9×{modulos}</div>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 14 }}>
+        <p className="section-cap">KPIs cruzados (RN-016: visibles según módulos activos)</p>
+        <div className="kpi-grid">
+          <div className="card kpi">
+            <div className="lab">Contratos aprobados</div>
+            <div className="val">{contratosActivos}</div>
+            <div className="hint">{contratosPendientes} pendientes de aprobación</div>
+          </div>
+          <div className="card kpi">
+            <div className="lab">% ejecución financiera</div>
+            <div className="val">{pctEjecucion}%</div>
+            <div className="hint">{cop.format(totalPagado)} / {cop.format(totalAprobado)}</div>
+          </div>
+          <div className="card kpi">
+            <div className="lab">Expediente documental</div>
+            <div className="val">{pctDocumental}%</div>
+            <div className="hint">{docsAprobados} / {docsTotal} documentos aprobados</div>
+          </div>
         </div>
       </div>
 

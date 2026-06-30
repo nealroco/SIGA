@@ -308,6 +308,24 @@ async function main() {
     }
   }
 
+  console.log("Seed: indicadores físicos y avances…");
+  const coordU = await prisma.usuario.findUnique({ where: { correo: "coord@siga.gov.co" } });
+  const adminU3 = await prisma.usuario.findUnique({ where: { correo: "admin@siga.gov.co" } });
+  const ind = await prisma.indicadorFisico.upsert({
+    where: { codigo: "IND-001" },
+    update: {},
+    create: { codigo: "IND-001", nombre: "Beneficiarios activos en escuelas deportivas", unidad: "beneficiarios", programado: 500, periodo: "2026" },
+  });
+  const avEx = await prisma.avanceMeta.findFirst({ where: { indicadorId: ind.id, periodo: "2026-01" } });
+  if (!avEx) {
+    await prisma.avanceMeta.create({
+      data: { indicadorId: ind.id, cantidadReportada: 120, cantidadAprobada: 120, estado: "Aprobado", periodo: "2026-01", createdById: coordU?.id ?? null, aprobadoById: adminU3?.id ?? null, aprobadoEn: new Date() },
+    });
+    await prisma.avanceMeta.create({
+      data: { indicadorId: ind.id, cantidadReportada: 95, estado: "Reportado", periodo: "2026-02", createdById: coordU?.id ?? null },
+    });
+  }
+
   console.log("Seed completado ✓");
 }
 
