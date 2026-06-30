@@ -91,6 +91,13 @@ model Usuario {
   evaluacionesEsalCreadas  EvaluacionEsal[]     @relation("evalesal_creador")
   evaluacionesEsalAprobadas EvaluacionEsal[]    @relation("evalesal_aprobador")
   evaluacionesPsicCreadas EvaluacionPsicosocial[] @relation("evalpsico_creador")
+  actasCreadas          ActaComite[]           @relation("acta_creador")
+  actasAprobadas        ActaComite[]           @relation("acta_aprobador")
+  comunicacionesCreadas Comunicacion[]         @relation("comunicacion_creador")
+  notificacionesCreadas Notificacion[]         @relation("notificacion_creador")
+  hallazgosCreados      HallazgoAuditoria[]     @relation("hallazgo_creador")
+  accesosEmergencia     AccesoEmergenciaIAM[]   @relation("acceso_emergencia_usuario")
+  configCloudActualizada ConfiguracionCloud[]   @relation("config_cloud_actualizador")
 
   @@map("usuarios")
 }
@@ -640,4 +647,91 @@ model SeleccionBeneficiario {
 
   @@unique([convocatoriaId, beneficiarioId])
   @@map("selecciones_beneficiario")
+}
+
+/// MOD-015 Comité de control — Supervisor o Coord. deportiva registran (E), Administrador aprueba (A)
+model ActaComite {
+  id            Int       @id @default(autoincrement())
+  fecha         DateTime  @default(now())
+  tema          String
+  decision      String?
+  estado        String    @default("Registrada") // Registrada | Aprobada | Rechazada
+  motivoRechazo String?
+  createdById   Int?
+  aprobadoById  Int?
+  aprobadoEn    DateTime?
+  createdAt     DateTime  @default(now())
+  createdBy     Usuario?  @relation("acta_creador", fields: [createdById], references: [id])
+  aprobadoBy    Usuario?  @relation("acta_aprobador", fields: [aprobadoById], references: [id])
+
+  @@map("actas_comite")
+}
+
+/// MOD-019 Comunicaciones — sin nivel A
+model Comunicacion {
+  id          Int      @id @default(autoincrement())
+  tipo        String   @default("Interna") // Interna | Externa | Prensa
+  canal       String?  // Correo | WhatsApp | Boletín | Redes
+  asunto      String
+  contenido   String?
+  publico     String?  // a quién va dirigida
+  estado      String   @default("Borrador") // Borrador | Enviada
+  createdById Int?
+  createdAt   DateTime @default(now())
+  createdBy   Usuario? @relation("comunicacion_creador", fields: [createdById], references: [id])
+
+  @@map("comunicaciones")
+}
+
+/// MOD-021 Notificaciones — cola/registro de avisos del sistema
+model Notificacion {
+  id            Int      @id @default(autoincrement())
+  tipoEvento    String   // RN-024-B | RN-026 | RN-025 | Manual
+  canal         String   @default("Sistema") // Sistema | Correo | SMS
+  destinatario  String?
+  mensaje       String
+  estadoEnvio   String   @default("Pendiente") // Pendiente | Enviada | Fallida
+  createdById   Int?
+  createdAt     DateTime @default(now())
+  createdBy     Usuario? @relation("notificacion_creador", fields: [createdById], references: [id])
+
+  @@map("notificaciones")
+}
+
+/// MOD-026 Auditoría interna — hallazgos registrados (Supervisor/Revisor=E) sobre el log de auditoría automático
+model HallazgoAuditoria {
+  id          Int      @id @default(autoincrement())
+  modulo      String?
+  descripcion String
+  gravedad    String   @default("Media") // Baja | Media | Alta
+  estado      String   @default("Abierto") // Abierto | Cerrado
+  createdById Int?
+  createdAt   DateTime @default(now())
+  createdBy   Usuario? @relation("hallazgo_creador", fields: [createdById], references: [id])
+
+  @@map("hallazgos_auditoria")
+}
+
+/// MOD-028 Seguridad/IAM — RN-026: acceso de emergencia (break-glass), solo rol Administrador
+model AccesoEmergenciaIAM {
+  id        Int      @id @default(autoincrement())
+  usuarioId Int?
+  motivo    String
+  createdAt DateTime @default(now())
+  usuario   Usuario? @relation("acceso_emergencia_usuario", fields: [usuarioId], references: [id])
+
+  @@map("accesos_emergencia_iam")
+}
+
+/// MOD-029 Infraestructura cloud — parámetros de estado/configuración
+model ConfiguracionCloud {
+  id            Int      @id @default(autoincrement())
+  clave         String   @unique
+  valor         String
+  descripcion   String?
+  actualizadoById Int?
+  updatedAt     DateTime @updatedAt
+  actualizadoBy Usuario? @relation("config_cloud_actualizador", fields: [actualizadoById], references: [id])
+
+  @@map("configuracion_cloud")
 }

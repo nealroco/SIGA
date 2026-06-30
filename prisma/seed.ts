@@ -391,6 +391,34 @@ async function main() {
     }
   }
 
+  console.log("Seed: comité, comunicaciones y notificaciones…");
+  const supU3 = await prisma.usuario.findUnique({ where: { correo: "supervisor@siga.gov.co" } });
+  const adminU5 = await prisma.usuario.findUnique({ where: { correo: "admin@siga.gov.co" } });
+  const actaEx = await prisma.actaComite.findFirst();
+  if (!actaEx) {
+    await prisma.actaComite.create({
+      data: { tema: "Revisión de avance trimestral", decision: "Se aprueba continuar con el cronograma vigente.", estado: "Aprobada", createdById: supU3?.id ?? null, aprobadoById: adminU5?.id ?? null, aprobadoEn: new Date() },
+    });
+  }
+  const comEx = await prisma.comunicacion.findFirst();
+  if (!comEx) {
+    await prisma.comunicacion.create({ data: { tipo: "Interna", canal: "Correo", asunto: "Apertura de convocatoria 2026-1", contenido: "Se informa la apertura de la convocatoria de escuelas deportivas.", publico: "Coordinadores territoriales", estado: "Enviada", createdById: adminU5?.id ?? null } });
+  }
+  const notifEx = await prisma.notificacion.findFirst();
+  if (!notifEx) {
+    await prisma.notificacion.create({ data: { tipoEvento: "RN-025", canal: "Sistema", destinatario: "Administrador", mensaje: "Contrato CTO-2026-002 pendiente de aprobación.", estadoEnvio: "Enviada", createdById: adminU5?.id ?? null } });
+  }
+
+  console.log("Seed: configuración cloud…");
+  const CONFIG: [string, string, string][] = [
+    ["respaldo_automatico", "Activo", "Respaldo diario de la base de datos"],
+    ["almacenamiento_usado_gb", "12.4", "Uso actual de almacenamiento de documentos"],
+    ["proveedor", "Local (dev) — pendiente VPS/Hostinger en producción", "Infraestructura de hosting"],
+  ];
+  for (const [clave, valor, descripcion] of CONFIG) {
+    await prisma.configuracionCloud.upsert({ where: { clave }, update: {}, create: { clave, valor, descripcion, actualizadoById: adminU5?.id ?? null } });
+  }
+
   console.log("Seed completado ✓");
 }
 

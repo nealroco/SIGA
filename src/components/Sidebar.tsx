@@ -20,16 +20,21 @@ function hrefFor(codigo: string): string {
   if (codigo === "MOD-012") return "/territorios";
   if (codigo === "MOD-013") return "/dotacion";
   if (codigo === "MOD-014") return "/polizas";
+  if (codigo === "MOD-015") return "/comite";
   if (codigo === "MOD-016") return "/indicadores";
   if (codigo === "MOD-017") return "/lotes";
   if (codigo === "MOD-018") return "/psicosocial";
+  if (codigo === "MOD-019") return "/comunicaciones";
   if (codigo === "MOD-020") return "/fuentes";
+  if (codigo === "MOD-021") return "/notificaciones";
   if (codigo === "MOD-022") return "/reservas";
   if (codigo === "MOD-023") return "/mantenimiento";
   if (codigo === "MOD-024") return "/georeferenciacion";
   if (codigo === "MOD-025") return "/impacto";
+  if (codigo === "MOD-026") return "/auditoria";
   if (codigo === "MOD-027") return "/secop";
-  if (codigo === "MOD-028") return "/admin/permisos";
+  if (codigo === "MOD-028") return "/admin/usuarios";
+  if (codigo === "MOD-029") return "/infraestructura-cloud";
   return `/modulo/${codigo}`;
 }
 
