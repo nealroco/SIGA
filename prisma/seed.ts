@@ -139,6 +139,7 @@ async function main() {
     ["Carolina Revisora", "revisor@siga.gov.co", "Revisor"],
     ["Coord. Deportiva", "coord@siga.gov.co", "Coord. deportiva"],
     ["Fernanda Financiera", "financiera@siga.gov.co", "Financiera"],
+    ["Sergio Supervisor", "supervisor@siga.gov.co", "Supervisor"],
   ];
   for (const [nombre, correo, rol] of usuarios) {
     await prisma.usuario.upsert({
@@ -204,6 +205,21 @@ async function main() {
         aprobadoEn: estado === "Aprobado" ? new Date() : null,
       },
     });
+  }
+
+  console.log("Seed: convocatorias…");
+  const sup = await prisma.usuario.findUnique({ where: { correo: "supervisor@siga.gov.co" } });
+  const CONVOCATORIAS: [string, string, number, string][] = [
+    ["Convocatoria Escuelas Deportivas 2026-1", "Inscripción a escuelas de formación deportiva", 50, "Abierta"],
+    ["Convocatoria Semillero de Atletismo", "Selección para el semillero juvenil de atletismo", 20, "En selección"],
+  ];
+  for (const [nombre, descripcion, cupos, estado] of CONVOCATORIAS) {
+    const existe = await prisma.convocatoria.findFirst({ where: { nombre } });
+    if (!existe) {
+      await prisma.convocatoria.create({
+        data: { nombre, descripcion, cupos, estado, createdById: sup?.id ?? null },
+      });
+    }
   }
 
   console.log("Seed completado ✓");

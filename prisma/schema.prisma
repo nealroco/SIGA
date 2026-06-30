@@ -63,6 +63,9 @@ model Usuario {
   auditorias   AuditLog[]
   contratosRegistrados Contrato[] @relation("registrante")
   contratosAprobados   Contrato[] @relation("aprobador")
+  convocatoriasCreadas Convocatoria[] @relation("conv_creador")
+  seleccionesPropuestas SeleccionBeneficiario[] @relation("sel_proponente")
+  seleccionesAprobadas  SeleccionBeneficiario[] @relation("sel_aprobador")
 
   @@map("usuarios")
 }
@@ -96,6 +99,7 @@ model Beneficiario {
   estado     String   @default("Activo") // Activo | Inactivo (RN-002: baja lógica, nunca DELETE)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  selecciones SeleccionBeneficiario[]
 
   @@map("beneficiarios")
 }
@@ -134,4 +138,41 @@ model Contrato {
   aprobadoBy    Usuario?  @relation("aprobador", fields: [aprobadoById], references: [id])
 
   @@map("contratos")
+}
+
+/// MOD-008 Convocatorias — RN-027: Supervisor selecciona (E), Administrador aprueba (A)
+model Convocatoria {
+  id            Int       @id @default(autoincrement())
+  nombre        String
+  tipo          String    @default("Beneficiarios")
+  descripcion   String?
+  cupos         Int       @default(0)
+  fechaApertura DateTime?
+  fechaCierre   DateTime?
+  estado        String    @default("Abierta") // Borrador | Abierta | En selección | Adjudicada | Cerrada
+  createdById   Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  createdBy     Usuario?               @relation("conv_creador", fields: [createdById], references: [id])
+  selecciones   SeleccionBeneficiario[]
+
+  @@map("convocatorias")
+}
+
+/// Selección de beneficiarios en una convocatoria (propone Supervisor, aprueba Administrador)
+model SeleccionBeneficiario {
+  id             Int          @id @default(autoincrement())
+  convocatoriaId Int
+  beneficiarioId Int
+  estado         String       @default("Propuesto") // Propuesto | Aprobado | Rechazado
+  propuestoById  Int?
+  aprobadoById   Int?
+  createdAt      DateTime     @default(now())
+  convocatoria   Convocatoria @relation(fields: [convocatoriaId], references: [id], onDelete: Cascade)
+  beneficiario   Beneficiario @relation(fields: [beneficiarioId], references: [id])
+  propuestoBy    Usuario?     @relation("sel_proponente", fields: [propuestoById], references: [id])
+  aprobadoBy     Usuario?     @relation("sel_aprobador", fields: [aprobadoById], references: [id])
+
+  @@unique([convocatoriaId, beneficiarioId])
+  @@map("selecciones_beneficiario")
 }
