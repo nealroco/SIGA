@@ -44,7 +44,7 @@ Contraseña para todos: `siga2026`
 |---|---|---|
 | MOD-001 Beneficiarios | `/beneficiarios` | RN-002 (baja lógica), RN-015, RN-020 |
 | MOD-002 Personal | `/personal` | — |
-| MOD-003 Financiera | `/financiera` | RN-005/006/007/008/009/010/018/023 |
+| MOD-003 Financiera | `/financiera` | RN-005/006/007/008/009/010/018/023/025 — pagos son **orden + aprobación**, no en línea |
 | MOD-004 Inventarios | `/inventarios` | — |
 | MOD-005 Documental | `/documental` | RN-012 (versionado append-only), RN-017 |
 | MOD-006 Informes | `/informes` | RN-006, RN-022, RN-023/026 |
