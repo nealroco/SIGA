@@ -20,7 +20,7 @@ const schema = z.object({
     (v) => (v === "" || v == null ? undefined : Number(v)),
     z.number().min(0, "El área no puede ser negativa").optional()
   ),
-  territorio: z.preprocess((v) => (v === "" || v == null ? undefined : v), z.string().max(120).optional()),
+  territorioId: z.preprocess((v) => (v === "" || v == null ? undefined : Number(v)), z.number().int().positive().optional()),
 });
 
 function readForm(fd: FormData) {
@@ -28,7 +28,7 @@ function readForm(fd: FormData) {
     codigo: String(fd.get("codigo") ?? ""),
     direccion: String(fd.get("direccion") ?? ""),
     area: fd.get("area"),
-    territorio: String(fd.get("territorio") ?? ""),
+    territorioId: fd.get("territorioId"),
   };
 }
 
@@ -59,12 +59,12 @@ export async function crearLote(_prev: FormState, fd: FormData): Promise<FormSta
       codigo: d.codigo,
       direccion: d.direccion ?? null,
       area: d.area ?? null,
-      territorio: d.territorio ?? null,
+      territorioId: d.territorioId ?? null,
       estado: "Activo",
       createdById: Number(session.user.id),
     },
   });
-  await writeAudit({ usuarioId: Number(session.user.id), accion: "crear", modulo: MOD, registroId: creado.id, valorNuevo: { codigo: d.codigo, direccion: d.direccion, area: d.area, territorio: d.territorio, estado: "Activo" } });
+  await writeAudit({ usuarioId: Number(session.user.id), accion: "crear", modulo: MOD, registroId: creado.id, valorNuevo: { codigo: d.codigo, direccion: d.direccion, area: d.area, territorioId: d.territorioId, estado: "Activo" } });
   revalidatePath("/lotes");
   redirect("/lotes");
 }
@@ -93,10 +93,10 @@ export async function editarLote(_prev: FormState, fd: FormData): Promise<FormSt
       codigo: d.codigo,
       direccion: d.direccion ?? null,
       area: d.area ?? null,
-      territorio: d.territorio ?? null,
+      territorioId: d.territorioId ?? null,
     },
   });
-  await writeAudit({ usuarioId: Number(session.user.id), accion: "editar", modulo: MOD, registroId: id, valorAnterior: { codigo: actual.codigo, direccion: actual.direccion, area: actual.area, territorio: actual.territorio }, valorNuevo: { codigo: d.codigo, direccion: d.direccion, area: d.area, territorio: d.territorio } });
+  await writeAudit({ usuarioId: Number(session.user.id), accion: "editar", modulo: MOD, registroId: id, valorAnterior: { codigo: actual.codigo, direccion: actual.direccion, area: actual.area, territorioId: actual.territorioId }, valorNuevo: { codigo: d.codigo, direccion: d.direccion, area: d.area, territorioId: d.territorioId } });
   revalidatePath("/lotes");
   redirect("/lotes");
 }

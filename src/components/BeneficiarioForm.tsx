@@ -11,7 +11,7 @@ type Values = {
   edad?: number | null;
   sexo?: string | null;
   programa?: string | null;
-  territorio?: string | null;
+  territorioId?: number | null;
   acudiente?: string | null;
 };
 
@@ -21,10 +21,12 @@ export default function BeneficiarioForm({
   action,
   values = {},
   submitLabel,
+  territorios = [],
 }: {
   action: Action;
   values?: Values;
   submitLabel: string;
+  territorios?: { id: number; codigo: string; municipio: string; zona: string | null }[];
 }) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(action, {});
   const fe = state.fieldErrors ?? {};
@@ -65,8 +67,13 @@ export default function BeneficiarioForm({
           <input id="programa" name="programa" className="input" defaultValue={values.programa ?? ""} placeholder="Escuela de fútbol…" />
         </div>
         <div className="field">
-          <label htmlFor="territorio">Territorio</label>
-          <input id="territorio" name="territorio" className="input" defaultValue={values.territorio ?? ""} placeholder="Municipio — zona" />
+          <label htmlFor="territorioId">Territorio</label>
+          <select id="territorioId" name="territorioId" className="select" defaultValue={values.territorioId ?? ""}>
+            <option value="">—</option>
+            {territorios.map((t) => (
+              <option key={t.id} value={t.id}>{t.municipio}{t.zona ? ` — ${t.zona}` : ""}</option>
+            ))}
+          </select>
         </div>
         <div className="field">
           <label htmlFor="acudiente">Acudiente</label>

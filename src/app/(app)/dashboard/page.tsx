@@ -19,13 +19,14 @@ export default async function DashboardPage() {
     prisma.beneficiario.groupBy({ by: ["programa"], _count: { _all: true }, where: { estado: "Activo" } }),
     prisma.contrato.count({ where: { estado: "Aprobado" } }),
     prisma.contrato.count({ where: { estado: "Registrado" } }),
-    prisma.cuentaCobro.findMany({ select: { valorAprobado: true, valorCobrado: true } }),
+    prisma.cuentaCobro.findMany({ where: { estado: { in: ["Aprobada", "Pagada"] } }, select: { valorAprobado: true } }),
     prisma.pago.findMany({ where: { estado: "Aprobado" }, select: { valorPagado: true } }),
     prisma.documento.count({ where: { estado: "Aprobado" } }),
     prisma.documento.count(),
   ]);
 
-  const totalAprobado = cuentas.reduce((acc, c) => acc + (c.valorAprobado ?? c.valorCobrado ?? 0), 0);
+  // Base por compromiso (no por caja): solo cuentas Aprobadas/Pagadas cuentan como "aprobado" — ver src/lib/presupuesto.ts
+  const totalAprobado = cuentas.reduce((acc, c) => acc + (c.valorAprobado ?? 0), 0);
   const totalPagado = pagos.reduce((acc, p) => acc + p.valorPagado, 0);
   const pctEjecucion = totalAprobado > 0 ? Math.round((totalPagado / totalAprobado) * 100) : 0;
   const pctDocumental = docsTotal > 0 ? Math.round((docsAprobados / docsTotal) * 100) : 0;

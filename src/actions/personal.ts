@@ -79,7 +79,9 @@ export async function crearPersonal(_prev: FormState, fd: FormData): Promise<For
     telefono: d.telefono,
   };
 
-  const creado = await prisma.personal.create({ data });
+  const creado = await prisma.personal.create({
+    data: { ...data, createdById: Number(session.user.id) },
+  });
   await writeAudit({
     usuarioId: Number(session.user.id),
     accion: "crear",
@@ -107,6 +109,8 @@ export async function editarPersonal(_prev: FormState, fd: FormData): Promise<Fo
 
   const anterior = await prisma.personal.findUnique({ where: { id } });
   if (!anterior) return { error: "El registro de personal no existe." };
+  if (anterior.estadoAprobacion === "Aprobado")
+    return { error: "Una vinculación ya aprobada no puede editarse." };
 
   const dup = await prisma.personal.findUnique({ where: { documento: d.documento } });
   if (dup && dup.id !== id) return { fieldErrors: { documento: "Otro registro ya usa ese documento." } };
@@ -122,7 +126,8 @@ export async function editarPersonal(_prev: FormState, fd: FormData): Promise<Fo
     telefono: d.telefono,
   };
 
-  await prisma.personal.update({ where: { id }, data });
+  // tras editar vuelve a Pendiente de aprobación (RN-025)
+  await prisma.personal.update({ where: { id }, data: { ...data, estadoAprobacion: "Pendiente", motivoRechazo: null } });
   await writeAudit({
     usuarioId: Number(session.user.id),
     accion: "editar",
@@ -139,6 +144,69 @@ export async function editarPersonal(_prev: FormState, fd: FormData): Promise<Fo
 
   revalidatePath("/personal");
   redirect("/personal");
+}
+
+// RN-025: la matriz da nivel Aprobación (A) a Supervisor sobre MOD-002 — quien registró (createdById)
+// nunca puede aprobar su propia hoja de vida, aunque además tenga nivel E en otro rol.
+export async function aprobarPersonal(fd: FormData): Promise<void> {
+  const session = await auth();
+  if (!session?.user) throw new Error("Sesión expirada.");
+  if (!(await can(session.user.rol, MOD, "aprobar")))
+    throw new Error(`No autorizado: aprobar vinculaciones de personal requiere nivel Aprobación (A) en MOD-002 (rol Supervisor). Tu rol es ${session.user.rol}.`);
+
+  const id = Number(fd.get("id"));
+  const p = await prisma.personal.findUnique({ where: { id } });
+  if (!p || p.estadoAprobacion !== "Pendiente") {
+    revalidatePath(`/personal/${id}`);
+    redirect(`/personal/${id}`);
+  }
+  if (p!.createdById && p!.createdById === Number(session.user.id))
+    throw new Error("Segregación de funciones (RN-025): no puedes aprobar una hoja de vida que tú mismo registraste.");
+
+  await prisma.personal.update({
+    where: { id },
+    data: { estadoAprobacion: "Aprobado", aprobadoById: Number(session.user.id), aprobadoEn: new Date(), motivoRechazo: null },
+  });
+  await writeAudit({
+    usuarioId: Number(session.user.id),
+    accion: "aprobar",
+    modulo: MOD,
+    registroId: id,
+    valorAnterior: { estadoAprobacion: "Pendiente" },
+    valorNuevo: { estadoAprobacion: "Aprobado" },
+  });
+  revalidatePath("/personal");
+  redirect(`/personal/${id}`);
+}
+
+export async function rechazarPersonal(fd: FormData): Promise<void> {
+  const session = await auth();
+  if (!session?.user) throw new Error("Sesión expirada.");
+  if (!(await can(session.user.rol, MOD, "aprobar")))
+    throw new Error(`No autorizado: rechazar requiere nivel Aprobación (A) en MOD-002.`);
+
+  const id = Number(fd.get("id"));
+  const motivo = String(fd.get("motivo") ?? "").trim();
+  if (!motivo) throw new Error("Debes indicar un motivo de rechazo.");
+
+  const p = await prisma.personal.findUnique({ where: { id } });
+  if (!p || p.estadoAprobacion !== "Pendiente") {
+    redirect(`/personal/${id}`);
+  }
+  if (p!.createdById && p!.createdById === Number(session.user.id))
+    throw new Error("Segregación de funciones (RN-025): no puedes rechazar una hoja de vida que tú mismo registraste.");
+
+  await prisma.personal.update({ where: { id }, data: { estadoAprobacion: "Rechazado", motivoRechazo: motivo } });
+  await writeAudit({
+    usuarioId: Number(session.user.id),
+    accion: "rechazar",
+    modulo: MOD,
+    registroId: id,
+    valorAnterior: { estadoAprobacion: "Pendiente" },
+    valorNuevo: { estadoAprobacion: "Rechazado", motivo },
+  });
+  revalidatePath("/personal");
+  redirect(`/personal/${id}`);
 }
 
 // RN-002: la "eliminación" es baja lógica (estado = Inactivo), nunca DELETE físico.

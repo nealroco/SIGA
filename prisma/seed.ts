@@ -140,6 +140,10 @@ async function main() {
     ["Coord. Deportiva", "coord@siga.gov.co", "Coord. deportiva"],
     ["Fernanda Financiera", "financiera@siga.gov.co", "Financiera"],
     ["Sergio Supervisor", "supervisor@siga.gov.co", "Supervisor"],
+    ["Óscar Operador", "operador@siga.gov.co", "Operador"],
+    ["Elena Entrenadora", "entrenador@siga.gov.co", "Entrenador"],
+    ["Iván Infraestructura", "infraestructura@siga.gov.co", "Infraestructura"],
+    ["Tatiana Tecnología", "tecnologia@siga.gov.co", "Tecnología"],
   ];
   for (const [nombre, correo, rol] of usuarios) {
     await prisma.usuario.upsert({
@@ -149,8 +153,24 @@ async function main() {
     });
   }
 
+  console.log("Seed: territorios…");
+  const TERRITORIOS: [string, string, string, number, number, number][] = [
+    ["TER-001", "Soacha", "Comuna 4", 450000, 4.5789, -74.2169],
+    ["TER-002", "Bogotá", "Bosa", 700000, 4.6181, -74.1772],
+    ["TER-003", "Girardot", "Centro", 105000, 4.3033, -74.8014],
+    ["TER-004", "Fusagasugá", "Norte", 140000, 4.3453, -74.3644],
+    ["TER-005", "Zipaquirá", "Centro", 130000, 5.0225, -74.0067],
+    ["TER-006", "Chía", "La Balsa", 145000, 4.8615, -74.0356],
+  ];
+  const territorioByMunicipio: Record<string, number> = {};
+  for (const [codigo, municipio, zona, poblacion, lat, lng] of TERRITORIOS) {
+    const t = await prisma.territorio.upsert({ where: { codigo }, update: {}, create: { codigo, municipio, zona, poblacion, lat, lng } });
+    territorioByMunicipio[municipio] = t.id;
+  }
+
   console.log("Seed: beneficiarios de muestra…");
   for (const [documento, nombre, edad, sexo, programa, territorio, acudiente] of BENEFICIARIOS) {
+    const municipio = String(territorio).split("—")[0].trim();
     await prisma.beneficiario.upsert({
       where: { documento: documento as string },
       update: {},
@@ -160,7 +180,7 @@ async function main() {
         edad: edad as number,
         sexo: sexo as string,
         programa: programa as string,
-        territorio: territorio as string,
+        territorioId: territorioByMunicipio[municipio] ?? null,
         acudiente: acudiente as string,
       },
     });
@@ -223,17 +243,29 @@ async function main() {
   }
 
   console.log("Seed: personal…");
-  const PERSONAL: [string, string, string, string, string][] = [
-    ["52111222", "Diana Torres", "Profesional de apoyo", "Administrativa", "Contratista"],
-    ["80333444", "Carlos Méndez", "Coordinador de programa", "Deportiva", "OPS"],
-    ["43555666", "Lucía Ramírez", "Entrenadora", "Deportiva", "OPS"],
+  const operU = await prisma.usuario.findUnique({ where: { correo: "operador@siga.gov.co" } });
+  const supUPersonal = await prisma.usuario.findUnique({ where: { correo: "supervisor@siga.gov.co" } });
+  const PERSONAL: [string, string, string, string, string, string][] = [
+    ["52111222", "Diana Torres", "Profesional de apoyo", "Administrativa", "Contratista", "Aprobado"],
+    ["80333444", "Carlos Méndez", "Coordinador de programa", "Deportiva", "OPS", "Pendiente"],
+    ["43555666", "Lucía Ramírez", "Entrenadora", "Deportiva", "OPS", "Pendiente"],
   ];
-  for (const [documento, nombre, cargo, perfil, tipoVinculacion] of PERSONAL) {
-    await prisma.personal.upsert({ where: { documento }, update: {}, create: { documento, nombre, cargo, perfil, tipoVinculacion } });
+  for (const [documento, nombre, cargo, perfil, tipoVinculacion, estadoAprobacion] of PERSONAL) {
+    await prisma.personal.upsert({
+      where: { documento },
+      update: {},
+      create: {
+        documento, nombre, cargo, perfil, tipoVinculacion, estadoAprobacion,
+        createdById: operU?.id ?? null,
+        aprobadoById: estadoAprobacion === "Aprobado" ? supUPersonal?.id ?? null : null,
+        aprobadoEn: estadoAprobacion === "Aprobado" ? new Date() : null,
+      },
+    });
   }
 
   console.log("Seed: expediente documental + informe + seguimiento…");
   const supU = await prisma.usuario.findUnique({ where: { correo: "supervisor@siga.gov.co" } });
+  const tecU = await prisma.usuario.findUnique({ where: { correo: "tecnologia@siga.gov.co" } });
   const c1 = await prisma.contrato.findUnique({ where: { numero: "CTO-2026-001" } });
   if (c1) {
     const DOCS: [string, boolean, string][] = [
@@ -245,7 +277,7 @@ async function main() {
     ];
     for (const [tipoDocumento, obligatorio, estado] of DOCS) {
       const ex = await prisma.documento.findFirst({ where: { contratoId: c1.id, tipoDocumento } });
-      if (!ex) await prisma.documento.create({ data: { contratoId: c1.id, tipoDocumento, obligatorio, estado } });
+      if (!ex) await prisma.documento.create({ data: { contratoId: c1.id, tipoDocumento, obligatorio, estado, createdById: tecU?.id ?? null } });
     }
     const infEx = await prisma.informe.findFirst({ where: { contratoId: c1.id, periodo: "2026-01" } });
     if (!infEx) await prisma.informe.create({ data: { contratoId: c1.id, periodo: "2026-01", estado: "Radicado", fechaRadicacion: new Date(), createdById: supU?.id ?? null } });
@@ -331,7 +363,7 @@ async function main() {
   }
 
   console.log("Seed: inventarios, dotación y lotes…");
-  const infraU = await prisma.usuario.findUnique({ where: { correo: "supervisor@siga.gov.co" } }); // placeholder hasta sembrar Infraestructura
+  const infraU = await prisma.usuario.findUnique({ where: { correo: "infraestructura@siga.gov.co" } });
   const item1 = await prisma.item.upsert({ where: { codigo: "ITM-001" }, update: {}, create: { codigo: "ITM-001", nombre: "Balones de fútbol", categoria: "Deportivo", ubicacion: "Bodega central", cantidad: 80 } });
   await prisma.item.upsert({ where: { codigo: "ITM-002" }, update: {}, create: { codigo: "ITM-002", nombre: "Uniformes talla M", categoria: "Dotación", ubicacion: "Bodega central", cantidad: 150 } });
   const ben1 = await prisma.beneficiario.findFirst();
@@ -339,7 +371,7 @@ async function main() {
     const dotEx = await prisma.dotacionEntrega.findFirst({ where: { beneficiarioId: ben1.id, itemId: item1.id } });
     if (!dotEx) await prisma.dotacionEntrega.create({ data: { beneficiarioId: ben1.id, itemId: item1.id, cantidad: 1, createdById: infraU?.id ?? null } });
   }
-  await prisma.lote.upsert({ where: { codigo: "LOT-001" }, update: {}, create: { codigo: "LOT-001", direccion: "Vía Soacha - Sibaté km 3", area: 4500, territorio: "Soacha" } });
+  await prisma.lote.upsert({ where: { codigo: "LOT-001" }, update: {}, create: { codigo: "LOT-001", direccion: "Vía Soacha - Sibaté km 3", area: 4500, territorioId: territorioByMunicipio["Soacha"] ?? null } });
 
   console.log("Seed: escenarios, reservas y mantenimiento…");
   let esc1 = await prisma.escenario.findFirst({ where: { nombre: "Coliseo Municipal" } });
@@ -364,15 +396,6 @@ async function main() {
     });
   }
 
-  console.log("Seed: territorios…");
-  const TERRITORIOS: [string, string, string, number, number, number][] = [
-    ["TER-001", "Soacha", "Comuna 4", 450000, 4.5789, -74.2169],
-    ["TER-002", "Bogotá", "Bosa", 700000, 4.6181, -74.1772],
-  ];
-  for (const [codigo, municipio, zona, poblacion, lat, lng] of TERRITORIOS) {
-    await prisma.territorio.upsert({ where: { codigo }, update: {}, create: { codigo, municipio, zona, poblacion, lat, lng } });
-  }
-
   console.log("Seed: evaluación ESAL y psicosocial…");
   const adminU4 = await prisma.usuario.findUnique({ where: { correo: "admin@siga.gov.co" } });
   const supU2 = await prisma.usuario.findUnique({ where: { correo: "supervisor@siga.gov.co" } });
@@ -390,7 +413,7 @@ async function main() {
     const psicEx = await prisma.evaluacionPsicosocial.findFirst({ where: { beneficiarioId: ben2.id } });
     if (!psicEx) {
       await prisma.evaluacionPsicosocial.create({
-        data: { beneficiarioId: ben2.id, fecha: new Date(), instrumento: "SUSESO-ISTAS21 adaptado", resultado: "Riesgo bajo", estado: "Revisada", createdById: adminU4?.id ?? null },
+        data: { beneficiarioId: ben2.id, fecha: new Date(), instrumento: "SUSESO-ISTAS21 adaptado", resultado: "Riesgo bajo", nivelRiesgo: "Bajo", estado: "Revisada", createdById: adminU4?.id ?? null },
       });
     }
   }
@@ -398,15 +421,17 @@ async function main() {
   console.log("Seed: comité, comunicaciones y notificaciones…");
   const supU3 = await prisma.usuario.findUnique({ where: { correo: "supervisor@siga.gov.co" } });
   const adminU5 = await prisma.usuario.findUnique({ where: { correo: "admin@siga.gov.co" } });
+  const c1acta = await prisma.contrato.findUnique({ where: { numero: "CTO-2026-001" } });
   const actaEx = await prisma.actaComite.findFirst();
   if (!actaEx) {
     await prisma.actaComite.create({
-      data: { tema: "Revisión de avance trimestral", decision: "Se aprueba continuar con el cronograma vigente.", estado: "Aprobada", createdById: supU3?.id ?? null, aprobadoById: adminU5?.id ?? null, aprobadoEn: new Date() },
+      data: { tema: "Revisión de avance trimestral", decision: "Se aprueba continuar con el cronograma vigente.", contratoId: c1acta?.id ?? null, estado: "Aprobada", createdById: supU3?.id ?? null, aprobadoById: adminU5?.id ?? null, aprobadoEn: new Date() },
     });
   }
+  const convApertura = await prisma.convocatoria.findFirst({ where: { nombre: "Convocatoria Escuelas Deportivas 2026-1" } });
   const comEx = await prisma.comunicacion.findFirst();
   if (!comEx) {
-    await prisma.comunicacion.create({ data: { tipo: "Interna", canal: "Correo", asunto: "Apertura de convocatoria 2026-1", contenido: "Se informa la apertura de la convocatoria de escuelas deportivas.", publico: "Coordinadores territoriales", estado: "Enviada", createdById: adminU5?.id ?? null } });
+    await prisma.comunicacion.create({ data: { tipo: "Interna", canal: "Correo", asunto: "Apertura de convocatoria 2026-1", contenido: "Se informa la apertura de la convocatoria de escuelas deportivas.", publico: "Coordinadores territoriales", convocatoriaId: convApertura?.id ?? null, estado: "Enviada", createdById: adminU5?.id ?? null } });
   }
   const notifEx = await prisma.notificacion.findFirst();
   if (!notifEx) {

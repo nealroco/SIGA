@@ -124,7 +124,9 @@ export async function editarInforme(_prev: FormState, fd: FormData): Promise<For
   redirect("/informes");
 }
 
-// MOD-006: las transiciones de estado las hace quien tiene E (no hay nivel A en la matriz).
+// MOD-006: no hay nivel A distinto en la matriz — la propia matriz da E a más de un rol (Administrador,
+// Revisor, Tecnología), así que la separación de funciones (RN-025) se hace con self-block: quien
+// radicó el informe (createdById) no puede aprobarlo/devolverlo, aunque tenga nivel E.
 export async function aprobarInforme(fd: FormData): Promise<void> {
   const session = await auth();
   if (!session?.user) throw new Error("Sesión expirada.");
@@ -137,6 +139,8 @@ export async function aprobarInforme(fd: FormData): Promise<void> {
     revalidatePath(`/informes/${id}`);
     redirect(`/informes/${id}`);
   }
+  if (inf!.createdById === Number(session.user.id))
+    throw new Error("RN-025: no puedes aprobar un informe que tú mismo radicaste.");
 
   await prisma.informe.update({ where: { id }, data: { estado: "Aprobado" } });
   await writeAudit({
@@ -166,6 +170,8 @@ export async function devolverInforme(fd: FormData): Promise<void> {
     revalidatePath(`/informes/${id}`);
     redirect(`/informes/${id}`);
   }
+  if (inf!.createdById === Number(session.user.id))
+    throw new Error("RN-025: no puedes devolver un informe que tú mismo radicaste.");
 
   await prisma.informe.update({ where: { id }, data: { estado: "Devuelto", observacion } });
   await writeAudit({

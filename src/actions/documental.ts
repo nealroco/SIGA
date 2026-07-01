@@ -58,6 +58,7 @@ export async function crearDocumento(_prev: FormState, fd: FormData): Promise<Fo
       tipoDocumento: d.tipoDocumento,
       obligatorio: d.obligatorio,
       estado: "Pendiente",
+      createdById: Number(session.user.id),
     },
   });
   await writeAudit({
@@ -119,6 +120,7 @@ export async function cargarVersion(fd: FormData): Promise<void> {
 }
 
 // RN-012: al rechazar NO se borran versiones (son append-only); solo cambia el estado del documento.
+// RN-025: quien cargó el documento (createdById) no puede revisarlo/aprobarlo, aunque tenga el mismo nivel E.
 export async function revisarDocumento(fd: FormData): Promise<void> {
   const session = await auth();
   if (!session?.user) throw new Error("Sesión expirada.");
@@ -138,6 +140,8 @@ export async function revisarDocumento(fd: FormData): Promise<void> {
     revalidatePath("/documental");
     redirect("/documental");
   }
+  if (doc!.createdById && doc!.createdById === Number(session.user.id))
+    throw new Error("RN-025: no puedes revisar un documento que tú mismo cargaste.");
 
   await prisma.documento.update({
     where: { id: documentoId },

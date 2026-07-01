@@ -13,12 +13,13 @@ export default async function LoteDetallePage({ params }: { params: Promise<{ id
   const loteId = Number(id);
   if (!loteId) notFound();
 
-  const l = await prisma.lote.findUnique({ where: { id: loteId } });
+  const l = await prisma.lote.findUnique({ where: { id: loteId }, include: { territorio: true } });
   if (!l) notFound();
 
   const session = await auth();
   const puedeEditar = session ? await can(session.user.rol, "MOD-017", "editar") : false;
   const puedeBaja = session ? await can(session.user.rol, "MOD-017", "eliminar") : false;
+  const territorios = await prisma.territorio.findMany({ where: { estado: "Activo" }, orderBy: { municipio: "asc" } });
 
   return (
     <div>
@@ -27,7 +28,7 @@ export default async function LoteDetallePage({ params }: { params: Promise<{ id
           <h1 className="page-title">{l.codigo}</h1>
           <p className="page-sub">
             MOD-017 · <span className={`badge ${l.estado === "Activo" ? "ok" : "off"}`}>{l.estado}</span>
-            {l.territorio ? <> · {l.territorio}</> : null}
+            {l.territorio ? <> · {l.territorio.municipio}{l.territorio.zona ? ` — ${l.territorio.zona}` : ""}</> : null}
           </p>
         </div>
         <Link href="/lotes" className="btn">← Volver</Link>
@@ -42,12 +43,13 @@ export default async function LoteDetallePage({ params }: { params: Promise<{ id
           <LoteForm
             action={editarLote}
             submitLabel="Guardar cambios"
+            territorios={territorios}
             values={{
               id: l.id,
               codigo: l.codigo,
               direccion: l.direccion,
               area: l.area,
-              territorio: l.territorio,
+              territorioId: l.territorioId,
             }}
           />
         </div>

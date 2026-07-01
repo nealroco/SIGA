@@ -25,7 +25,7 @@ const schema = z.object({
     z.enum(["M", "F", "Otro"]).optional()
   ),
   programa: z.preprocess((v) => (v === "" ? undefined : v), z.string().max(120).optional()),
-  territorio: z.preprocess((v) => (v === "" ? undefined : v), z.string().max(120).optional()),
+  territorioId: z.preprocess((v) => (v === "" || v == null ? undefined : Number(v)), z.number().int().positive().optional()),
   acudiente: z.preprocess((v) => (v === "" ? undefined : v), z.string().max(120).optional()),
 });
 
@@ -36,7 +36,7 @@ function readForm(fd: FormData) {
     edad: fd.get("edad"),
     sexo: fd.get("sexo"),
     programa: String(fd.get("programa") ?? ""),
-    territorio: String(fd.get("territorio") ?? ""),
+    territorioId: fd.get("territorioId"),
     acudiente: String(fd.get("acudiente") ?? ""),
   };
 }

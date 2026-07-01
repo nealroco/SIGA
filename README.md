@@ -43,12 +43,12 @@ Contraseña para todos: `siga2026`
 | Módulo | Ruta | Regla(s) de negocio destacada |
 |---|---|---|
 | MOD-001 Beneficiarios | `/beneficiarios` | RN-002 (baja lógica), RN-015, RN-020 |
-| MOD-002 Personal | `/personal` | — |
+| MOD-002 Personal | `/personal` | RN-025 (Operador registra, Supervisor aprueba — self-block sobre `estadoAprobacion`) |
 | MOD-003 Financiera | `/financiera`, `/rubros` | RN-005/006/007/008/009/010/018/023/025 — pagos son **orden + aprobación**, no en línea; control de inversión por rubro (Asignado/Comprometido/Ejecutado/Libre) |
 | MOD-004 Inventarios | `/inventarios` | — |
-| MOD-005 Documental | `/documental` | RN-012 (versionado append-only), RN-017 |
-| MOD-006 Informes | `/informes` | RN-006, RN-022, RN-023/026 |
-| MOD-007 Dashboard KPIs | `/dashboard` | RN-016/019 (KPIs cruzados) |
+| MOD-005 Documental | `/documental` | RN-012 (versionado append-only), RN-017, RN-025 (self-block: quien carga no revisa) |
+| MOD-006 Informes | `/informes` | RN-006, RN-022, RN-023/026, RN-025 (self-block: quien radica no aprueba/devuelve) |
+| MOD-007 Dashboard KPIs | `/dashboard` | RN-016/019 (KPIs cruzados); % ejecución solo sobre cuentas Aprobada/Pagada |
 | MOD-008 Convocatorias | `/convocatorias` | RN-027 (segregación anti-nepotismo) |
 | MOD-009 Evaluación ESAL | `/evaluacion-esal` | doble control: Administrador registra, Supervisor aprueba |
 | MOD-010 Contratos | `/contratos` | RN-025 (doble aprobación, 4 ojos) |
@@ -69,7 +69,7 @@ Contraseña para todos: `siga2026`
 | MOD-025 Análisis de impacto | `/impacto` | RN-021 (alerta de desviación) |
 | MOD-026 Auditoría interna | `/auditoria` | visor de `AuditLog` + hallazgos |
 | MOD-027 Integración SECOP II | `/secop` | RN-025 |
-| MOD-028 Seguridad / IAM | `/admin/usuarios`, `/admin/permisos` | RN-026 (break-glass, solo Administrador) |
+| MOD-028 Seguridad / IAM | `/admin/usuarios`, `/admin/permisos` | RN-026 (break-glass, solo Administrador); guarda contra bloquear al último Administrador activo |
 | MOD-029 Infraestructura cloud | `/infraestructura-cloud` | estado del sistema + config |
 
 ## Reglas de negocio aplicadas (del v4)
@@ -89,6 +89,34 @@ En `<input type="number">`, si `step` es distinto de `1`/`"any"`, el atributo `m
 múltiplo de ese `step`. `min={1} step="1000"` hace que el navegador rechace valores como `7000000`
 **sin avisar** (sin red, sin consola — bloqueo silencioso de validación HTML5). Se encontró en
 `PagoForm.tsx` y se corrigió a `min={0} step="any"`; todos los módulos posteriores usan esa convención.
+
+## Auditoría de sistema — hallazgos y correcciones (Núcleo/IAM)
+
+Auditoría manual de MOD-001/002/005/006/007/026/028 (2026-06-30). Confirmados y corregidos:
+
+- **MOD-006 Informes**: `aprobarInforme`/`devolverInforme` no comprobaban `createdById` — quien radicaba
+  un informe podía aprobárselo a sí mismo (la matriz da E a Administrador/Revisor/Tecnología sin un nivel
+  A distinto). Corregido con self-block RN-025.
+- **MOD-005 Documental**: `Documento` no tenía `createdById` (no había forma de saber quién cargó un
+  documento) y `revisarDocumento` no bloqueaba la auto-revisión. Se agregó la columna y el self-block.
+- **MOD-007 Dashboard**: el KPI "% ejecución financiera" sumaba **todas** las cuentas de cobro sin filtrar
+  por estado y usaba `valorCobrado` como sustituto de `valorAprobado` para cuentas no aprobadas — inflaba
+  el denominador. Corregido para filtrar `estado IN (Aprobada, Pagada)` y usar solo `valorAprobado`.
+- **MOD-002 Personal**: la matriz da a Supervisor nivel Aprobación (A), pero no existía ningún flujo de
+  aprobación en el código. Se agregó `estadoAprobacion` (Pendiente/Aprobado/Rechazado) + `aprobarPersonal`/
+  `rechazarPersonal` con doble control RN-025, independiente de la baja lógica (`estado`, RN-002).
+- **MOD-028 IAM**: `cambiarEstadoUsuario` no impedía dejar el sistema sin ningún Administrador activo
+  (riesgo de bloqueo total/lockout). Se agregó la comprobación.
+- Esquema: `Beneficiario`/`Lote` migraron su `territorio` de texto libre a `territorioId` (relación a
+  `Territorio`); se agregaron `Contrato.convocatoriaId`, `ActaComite.contratoId/convocatoriaId`,
+  `Comunicacion.convocatoriaId`, `EvaluacionPsicosocial.nivelRiesgo`, `DotacionEntrega.fechaDevolucion`/
+  `devueltoById` para cerrar vínculos que solo existían en el catálogo v4 y no en el modelo de datos.
+
+Pendiente (no cubierto en esta fase, backlog de la auditoría completa de 6 grupos): Impacto (filtro por
+período), Mantenimiento↔Reservas (cruce de validación), Convocatorias/Seguimiento (cierre de ciclo de
+vida), notificaciones automáticas para RN-024-B/RN-026/RN-025, Comunicaciones↔Convocatorias (borrador
+automático), Inventarios/Dotación (conciliación y defensa en profundidad), SECOP (deduplicación),
+Escenario (editar/baja lógica).
 
 ## Cómo se añade un módulo nuevo
 

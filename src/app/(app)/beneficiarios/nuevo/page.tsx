@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
 import { crearBeneficiario } from "@/actions/beneficiarios";
 import BeneficiarioForm from "@/components/BeneficiarioForm";
@@ -9,6 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function NuevoBeneficiarioPage() {
   const session = await auth();
   const puedeCrear = session ? await can(session.user.rol, "MOD-001", "crear") : false;
+  const territorios = await prisma.territorio.findMany({ where: { estado: "Activo" }, orderBy: { municipio: "asc" } });
 
   return (
     <div>
@@ -22,7 +24,7 @@ export default async function NuevoBeneficiarioPage() {
         </div>
       ) : (
         <div style={{ marginTop: 18 }}>
-          <BeneficiarioForm action={crearBeneficiario} submitLabel="Crear beneficiario" />
+          <BeneficiarioForm action={crearBeneficiario} submitLabel="Crear beneficiario" territorios={territorios} />
         </div>
       )}
     </div>

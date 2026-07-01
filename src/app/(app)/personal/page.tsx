@@ -67,12 +67,13 @@ export default async function PersonalPage({
               <th>Vinculación</th>
               <th>Ingreso</th>
               <th>Estado</th>
+              <th>Aprobación</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 ? (
-              <tr><td colSpan={7} className="empty">No hay personal que coincida.</td></tr>
+              <tr><td colSpan={8} className="empty">No hay personal que coincida.</td></tr>
             ) : (
               items.map((p) => (
                 <tr key={p.id}>
@@ -83,6 +84,9 @@ export default async function PersonalPage({
                   <td className="mono">{p.fechaIngreso ? p.fechaIngreso.toISOString().slice(0, 10) : "—"}</td>
                   <td>
                     <span className={`badge ${p.estado === "Activo" ? "ok" : "off"}`}>{p.estado}</span>
+                  </td>
+                  <td>
+                    <span className={`badge ${p.estadoAprobacion === "Aprobado" ? "ok" : p.estadoAprobacion === "Rechazado" ? "C" : "A"}`}>{p.estadoAprobacion}</span>
                   </td>
                   <td>
                     <Link href={`/personal/${p.id}`} className="btn btn-sm">Ver / editar</Link>

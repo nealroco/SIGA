@@ -19,6 +19,7 @@ export default async function BeneficiarioDetallePage({ params }: { params: Prom
   const session = await auth();
   const puedeEditar = session ? await can(session.user.rol, "MOD-001", "editar") : false;
   const puedeBaja = session ? await can(session.user.rol, "MOD-001", "eliminar") : false;
+  const territorios = await prisma.territorio.findMany({ where: { estado: "Activo" }, orderBy: { municipio: "asc" } });
 
   return (
     <div>
@@ -42,6 +43,7 @@ export default async function BeneficiarioDetallePage({ params }: { params: Prom
           <BeneficiarioForm
             action={editarBeneficiario}
             submitLabel="Guardar cambios"
+            territorios={territorios}
             values={{
               id: b.id,
               documento: b.documento,
@@ -49,7 +51,7 @@ export default async function BeneficiarioDetallePage({ params }: { params: Prom
               edad: b.edad,
               sexo: b.sexo,
               programa: b.programa,
-              territorio: b.territorio,
+              territorioId: b.territorioId,
               acudiente: b.acudiente,
             }}
           />

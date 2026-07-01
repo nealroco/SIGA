@@ -20,11 +20,11 @@ export default async function LotesPage({
 
   const where: Prisma.LoteWhereInput = {};
   if (q) {
-    where.OR = [{ codigo: { contains: q } }, { direccion: { contains: q } }, { territorio: { contains: q } }];
+    where.OR = [{ codigo: { contains: q } }, { direccion: { contains: q } }, { territorio: { municipio: { contains: q } } }];
   }
   if (estado === "Activo" || estado === "Inactivo") where.estado = estado;
 
-  const items = await prisma.lote.findMany({ where, orderBy: { createdAt: "desc" } });
+  const items = await prisma.lote.findMany({ where, orderBy: { createdAt: "desc" }, include: { territorio: true } });
 
   return (
     <div>
@@ -77,7 +77,7 @@ export default async function LotesPage({
                 <tr key={l.id}>
                   <td className="doc">{l.codigo}</td>
                   <td>{l.direccion ?? "—"}</td>
-                  <td>{l.territorio ?? "—"}</td>
+                  <td>{l.territorio ? `${l.territorio.municipio}${l.territorio.zona ? " — " + l.territorio.zona : ""}` : "—"}</td>
                   <td className="mono">{l.area ?? "—"}</td>
                   <td>
                     <span className={`badge ${l.estado === "Activo" ? "ok" : "off"}`}>{l.estado}</span>

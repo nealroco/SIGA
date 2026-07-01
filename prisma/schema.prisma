@@ -51,56 +51,60 @@ model Permiso {
 
 /// Usuario del sistema (IAM)
 model Usuario {
-  id           Int        @id @default(autoincrement())
-  nombre       String
-  correo       String     @unique
-  passwordHash String
-  rolId        Int
-  estado       String     @default("Activo") // Activo | Inactivo | Bloqueado
-  ultimoAcceso DateTime?
-  createdAt    DateTime   @default(now())
-  rol          Rol        @relation(fields: [rolId], references: [id])
-  auditorias   AuditLog[]
-  contratosRegistrados Contrato[] @relation("registrante")
-  contratosAprobados   Contrato[] @relation("aprobador")
-  convocatoriasCreadas Convocatoria[] @relation("conv_creador")
-  seleccionesPropuestas SeleccionBeneficiario[] @relation("sel_proponente")
-  seleccionesAprobadas  SeleccionBeneficiario[] @relation("sel_aprobador")
-  seguimientosCreados   Seguimiento[]          @relation("seg_creador")
-  informesCreados       Informe[]              @relation("inf_creador")
-  fuentesCreadas        FuenteFinanciacion[]   @relation("fuente_creador")
-  fuentesAprobadas      FuenteFinanciacion[]   @relation("fuente_aprobador")
-  rubrosCreados         Rubro[]                @relation("rubro_creador")
-  rubrosAprobados       Rubro[]                @relation("rubro_aprobador")
-  cuentasCreadas        CuentaCobro[]          @relation("cuenta_creador")
-  cuentasAprobadas      CuentaCobro[]          @relation("cuenta_aprobador")
-  pagosRegistrados      Pago[]                 @relation("pago_creador")
-  pagosAprobados        Pago[]                 @relation("pago_aprobador")
-  polizasCreadas        Poliza[]               @relation("poliza_creador")
-  polizasAprobadas      Poliza[]               @relation("poliza_aprobador")
-  secopCreados          RegistroSecop[]        @relation("secop_creador")
-  secopAprobados        RegistroSecop[]        @relation("secop_aprobador")
-  avancesCreados        AvanceMeta[]           @relation("avance_creador")
-  avancesAprobados      AvanceMeta[]           @relation("avance_aprobador")
-  analisisCreados       AnalisisImpacto[]      @relation("analisis_creador")
-  itemsCreados          Item[]                 @relation("item_creador")
-  dotacionesCreadas     DotacionEntrega[]      @relation("dotacion_creador")
-  lotesCreados          Lote[]                 @relation("lote_creador")
-  escenariosCreados     Escenario[]            @relation("escenario_creador")
-  reservasCreadas       ReservaEscenario[]     @relation("reserva_creador")
-  conflictosGenerados   LogConflicto[]         @relation("conflicto_usuario")
-  mantenimientosCreados Mantenimiento[]        @relation("mant_creador")
-  territoriosCreados    Territorio[]           @relation("territorio_creador")
-  evaluacionesEsalCreadas  EvaluacionEsal[]     @relation("evalesal_creador")
-  evaluacionesEsalAprobadas EvaluacionEsal[]    @relation("evalesal_aprobador")
-  evaluacionesPsicCreadas EvaluacionPsicosocial[] @relation("evalpsico_creador")
-  actasCreadas          ActaComite[]           @relation("acta_creador")
-  actasAprobadas        ActaComite[]           @relation("acta_aprobador")
-  comunicacionesCreadas Comunicacion[]         @relation("comunicacion_creador")
-  notificacionesCreadas Notificacion[]         @relation("notificacion_creador")
-  hallazgosCreados      HallazgoAuditoria[]     @relation("hallazgo_creador")
-  accesosEmergencia     AccesoEmergenciaIAM[]   @relation("acceso_emergencia_usuario")
-  configCloudActualizada ConfiguracionCloud[]   @relation("config_cloud_actualizador")
+  id                        Int                     @id @default(autoincrement())
+  nombre                    String
+  correo                    String                  @unique
+  passwordHash              String
+  rolId                     Int
+  estado                    String                  @default("Activo") // Activo | Inactivo | Bloqueado
+  ultimoAcceso              DateTime?
+  createdAt                 DateTime                @default(now())
+  rol                       Rol                     @relation(fields: [rolId], references: [id])
+  auditorias                AuditLog[]
+  contratosRegistrados      Contrato[]              @relation("registrante")
+  contratosAprobados        Contrato[]              @relation("aprobador")
+  convocatoriasCreadas      Convocatoria[]          @relation("conv_creador")
+  seleccionesPropuestas     SeleccionBeneficiario[] @relation("sel_proponente")
+  seleccionesAprobadas      SeleccionBeneficiario[] @relation("sel_aprobador")
+  seguimientosCreados       Seguimiento[]           @relation("seg_creador")
+  informesCreados           Informe[]               @relation("inf_creador")
+  fuentesCreadas            FuenteFinanciacion[]    @relation("fuente_creador")
+  fuentesAprobadas          FuenteFinanciacion[]    @relation("fuente_aprobador")
+  rubrosCreados             Rubro[]                 @relation("rubro_creador")
+  rubrosAprobados           Rubro[]                 @relation("rubro_aprobador")
+  cuentasCreadas            CuentaCobro[]           @relation("cuenta_creador")
+  cuentasAprobadas          CuentaCobro[]           @relation("cuenta_aprobador")
+  pagosRegistrados          Pago[]                  @relation("pago_creador")
+  pagosAprobados            Pago[]                  @relation("pago_aprobador")
+  polizasCreadas            Poliza[]                @relation("poliza_creador")
+  polizasAprobadas          Poliza[]                @relation("poliza_aprobador")
+  secopCreados              RegistroSecop[]         @relation("secop_creador")
+  secopAprobados            RegistroSecop[]         @relation("secop_aprobador")
+  avancesCreados            AvanceMeta[]            @relation("avance_creador")
+  avancesAprobados          AvanceMeta[]            @relation("avance_aprobador")
+  analisisCreados           AnalisisImpacto[]       @relation("analisis_creador")
+  itemsCreados              Item[]                  @relation("item_creador")
+  dotacionesCreadas         DotacionEntrega[]       @relation("dotacion_creador")
+  lotesCreados              Lote[]                  @relation("lote_creador")
+  escenariosCreados         Escenario[]             @relation("escenario_creador")
+  reservasCreadas           ReservaEscenario[]      @relation("reserva_creador")
+  conflictosGenerados       LogConflicto[]          @relation("conflicto_usuario")
+  mantenimientosCreados     Mantenimiento[]         @relation("mant_creador")
+  territoriosCreados        Territorio[]            @relation("territorio_creador")
+  evaluacionesEsalCreadas   EvaluacionEsal[]        @relation("evalesal_creador")
+  evaluacionesEsalAprobadas EvaluacionEsal[]        @relation("evalesal_aprobador")
+  evaluacionesPsicCreadas   EvaluacionPsicosocial[] @relation("evalpsico_creador")
+  actasCreadas              ActaComite[]            @relation("acta_creador")
+  actasAprobadas            ActaComite[]            @relation("acta_aprobador")
+  comunicacionesCreadas     Comunicacion[]          @relation("comunicacion_creador")
+  notificacionesCreadas     Notificacion[]          @relation("notificacion_creador")
+  hallazgosCreados          HallazgoAuditoria[]     @relation("hallazgo_creador")
+  accesosEmergencia         AccesoEmergenciaIAM[]   @relation("acceso_emergencia_usuario")
+  configCloudActualizada    ConfiguracionCloud[]    @relation("config_cloud_actualizador")
+  personalCreado            Personal[]              @relation("personal_creador")
+  personalAprobado          Personal[]              @relation("personal_aprobador")
+  dotacionesDevueltas       DotacionEntrega[]       @relation("dotacion_devuelto")
+  documentosCreados         Documento[]             @relation("documento_creador")
 
   @@map("usuarios")
 }
@@ -123,20 +127,21 @@ model AuditLog {
 
 /// MOD-001 Beneficiarios
 model Beneficiario {
-  id         Int      @id @default(autoincrement())
-  documento  String   @unique
-  nombre     String
-  edad       Int?
-  sexo       String? // M | F | Otro
-  programa   String?
-  territorio String?
-  acudiente  String?
-  estado     String   @default("Activo") // Activo | Inactivo (RN-002: baja lógica, nunca DELETE)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  selecciones SeleccionBeneficiario[]
-  seguimientos Seguimiento[]
-  dotaciones DotacionEntrega[]
+  id                        Int                     @id @default(autoincrement())
+  documento                 String                  @unique
+  nombre                    String
+  edad                      Int?
+  sexo                      String? // M | F | Otro
+  programa                  String?
+  territorioId              Int?
+  acudiente                 String?
+  estado                    String                  @default("Activo") // Activo | Inactivo (RN-002: baja lógica, nunca DELETE)
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  territorio                Territorio?             @relation(fields: [territorioId], references: [id])
+  selecciones               SeleccionBeneficiario[]
+  seguimientos              Seguimiento[]
+  dotaciones                DotacionEntrega[]
   evaluacionesPsicosociales EvaluacionPsicosocial[]
 
   @@map("beneficiarios")
@@ -144,67 +149,76 @@ model Beneficiario {
 
 /// MOD-004 Inventarios — bienes y equipos
 model Item {
-  id        Int      @id @default(autoincrement())
-  codigo    String   @unique
-  nombre    String
-  categoria String?
-  ubicacion String?
-  cantidad  Int      @default(0)
-  estado    String   @default("Activo")
+  id          Int               @id @default(autoincrement())
+  codigo      String            @unique
+  nombre      String
+  categoria   String?
+  ubicacion   String?
+  cantidad    Int               @default(0)
+  estado      String            @default("Activo")
   createdById Int?
-  createdAt DateTime @default(now())
-  createdBy Usuario? @relation("item_creador", fields: [createdById], references: [id])
-  dotaciones DotacionEntrega[]
+  createdAt   DateTime          @default(now())
+  createdBy   Usuario?          @relation("item_creador", fields: [createdById], references: [id])
+  dotaciones  DotacionEntrega[]
 
   @@map("items")
 }
 
 /// MOD-013 Dotación deportiva — entrega de ítems a beneficiarios
 model DotacionEntrega {
-  id            Int          @id @default(autoincrement())
-  beneficiarioId Int
-  itemId        Int
-  cantidad      Int          @default(1)
-  fechaEntrega  DateTime     @default(now())
-  estado        String       @default("Entregada") // Entregada | Devuelta
-  createdById   Int?
-  createdAt     DateTime     @default(now())
-  beneficiario  Beneficiario @relation(fields: [beneficiarioId], references: [id])
-  item          Item         @relation(fields: [itemId], references: [id])
-  createdBy     Usuario?     @relation("dotacion_creador", fields: [createdById], references: [id])
+  id              Int          @id @default(autoincrement())
+  beneficiarioId  Int
+  itemId          Int
+  cantidad        Int          @default(1)
+  fechaEntrega    DateTime     @default(now())
+  fechaDevolucion DateTime?
+  estado          String       @default("Entregada") // Entregada | Devuelta
+  createdById     Int?
+  devueltoById    Int?
+  createdAt       DateTime     @default(now())
+  beneficiario    Beneficiario @relation(fields: [beneficiarioId], references: [id])
+  item            Item         @relation(fields: [itemId], references: [id])
+  createdBy       Usuario?     @relation("dotacion_creador", fields: [createdById], references: [id])
+  devueltoBy      Usuario?     @relation("dotacion_devuelto", fields: [devueltoById], references: [id])
 
   @@map("dotacion_entregas")
 }
 
 /// MOD-017 Gestión de lotes — predios/terrenos
 model Lote {
-  id          Int      @id @default(autoincrement())
-  codigo      String   @unique
-  direccion   String?
-  area        Float?
-  territorio  String?
-  estado      String   @default("Activo")
-  createdById Int?
-  createdAt   DateTime @default(now())
-  createdBy   Usuario? @relation("lote_creador", fields: [createdById], references: [id])
+  id           Int         @id @default(autoincrement())
+  codigo       String      @unique
+  direccion    String?
+  area         Float?
+  territorioId Int?
+  estado       String      @default("Activo")
+  createdById  Int?
+  createdAt    DateTime    @default(now())
+  territorio   Territorio? @relation(fields: [territorioId], references: [id])
+  createdBy    Usuario?    @relation("lote_creador", fields: [createdById], references: [id])
+  escenarios   Escenario[]
 
   @@map("lotes")
 }
 
 /// Catálogo de escenarios deportivos (gestionado dentro de MOD-022 Reservas)
 model Escenario {
-  id          Int      @id @default(autoincrement())
-  nombre      String
-  tipo        String?  // Cancha | Coliseo | Piscina | Pista
-  direccion   String?
-  capacidad   Int?
-  estado      String   @default("Activo")
-  lat         Float?   // MOD-024 Georeferenciación
-  lng         Float?
-  createdById Int?
-  createdAt   DateTime @default(now())
-  createdBy   Usuario?           @relation("escenario_creador", fields: [createdById], references: [id])
-  reservas    ReservaEscenario[]
+  id             Int                @id @default(autoincrement())
+  nombre         String
+  tipo           String? // Cancha | Coliseo | Piscina | Pista
+  direccion      String?
+  capacidad      Int?
+  estado         String             @default("Activo")
+  lat            Float? // MOD-024 Georeferenciación
+  lng            Float?
+  loteId         Int? // predio sobre el que se construyó (MOD-017)
+  territorioId   Int? // caracterización territorial (MOD-012)
+  createdById    Int?
+  createdAt      DateTime           @default(now())
+  lote           Lote?              @relation(fields: [loteId], references: [id])
+  territorio     Territorio?        @relation(fields: [territorioId], references: [id])
+  createdBy      Usuario?           @relation("escenario_creador", fields: [createdById], references: [id])
+  reservas       ReservaEscenario[]
   mantenimientos Mantenimiento[]
 
   @@map("escenarios")
@@ -212,38 +226,41 @@ model Escenario {
 
 /// MOD-012 Caracterización territorial — también alimenta MOD-024 Georeferenciación (lat/lng)
 model Territorio {
-  id          Int      @id @default(autoincrement())
-  codigo      String   @unique
-  municipio   String
-  zona        String?
-  poblacion   Int?
-  lat         Float?
-  lng         Float?
-  estado      String   @default("Activo")
-  createdById Int?
-  createdAt   DateTime @default(now())
-  createdBy   Usuario? @relation("territorio_creador", fields: [createdById], references: [id])
+  id            Int            @id @default(autoincrement())
+  codigo        String         @unique
+  municipio     String
+  zona          String?
+  poblacion     Int?
+  lat           Float?
+  lng           Float?
+  estado        String         @default("Activo")
+  createdById   Int?
+  createdAt     DateTime       @default(now())
+  createdBy     Usuario?       @relation("territorio_creador", fields: [createdById], references: [id])
+  beneficiarios Beneficiario[]
+  lotes         Lote[]
+  escenarios    Escenario[]
 
   @@map("territorios")
 }
 
 /// MOD-009 Evaluación ESAL — RN-025-style SoD: Administrador registra (E), Supervisor aprueba (A)
 model EvaluacionEsal {
-  id              Int           @id @default(autoincrement())
-  terceroId       Int
-  convocatoriaId  Int?
-  criterio        String?
-  puntaje         Float?
-  estado          String        @default("Registrada") // Registrada | Aprobada | Rechazada
-  motivoRechazo   String?
-  createdById     Int?
-  aprobadoById    Int?
-  aprobadoEn      DateTime?
-  createdAt       DateTime      @default(now())
-  tercero         Tercero       @relation(fields: [terceroId], references: [id])
-  convocatoria    Convocatoria? @relation(fields: [convocatoriaId], references: [id])
-  createdBy       Usuario?      @relation("evalesal_creador", fields: [createdById], references: [id])
-  aprobadoBy      Usuario?      @relation("evalesal_aprobador", fields: [aprobadoById], references: [id])
+  id             Int           @id @default(autoincrement())
+  terceroId      Int
+  convocatoriaId Int?
+  criterio       String?
+  puntaje        Float?
+  estado         String        @default("Registrada") // Registrada | Aprobada | Rechazada
+  motivoRechazo  String?
+  createdById    Int?
+  aprobadoById   Int?
+  aprobadoEn     DateTime?
+  createdAt      DateTime      @default(now())
+  tercero        Tercero       @relation(fields: [terceroId], references: [id])
+  convocatoria   Convocatoria? @relation(fields: [convocatoriaId], references: [id])
+  createdBy      Usuario?      @relation("evalesal_creador", fields: [createdById], references: [id])
+  aprobadoBy     Usuario?      @relation("evalesal_aprobador", fields: [aprobadoById], references: [id])
 
   @@map("evaluaciones_esal")
 }
@@ -255,6 +272,7 @@ model EvaluacionPsicosocial {
   fecha          DateTime?
   instrumento    String?
   resultado      String?
+  nivelRiesgo    String? // Bajo | Medio | Alto — dispara alerta cuando es Alto
   estado         String       @default("Registrada") // Registrada | Revisada
   observacion    String?
   createdById    Int?
@@ -267,66 +285,66 @@ model EvaluacionPsicosocial {
 
 /// MOD-022 Reservas escenario — RN-024 (anti-solapamiento + margen 30 min) y RN-024-B (override de emergencia, solo Administrador)
 model ReservaEscenario {
-  id           Int       @id @default(autoincrement())
-  escenarioId  Int
-  tipoUso      String?
-  fechaInicio  DateTime
-  fechaFin     DateTime
-  estado       String    @default("Activa") // Activa | Cancelada | Emergencia
-  periodo      String?
-  esEmergencia Boolean   @default(false)
+  id               Int       @id @default(autoincrement())
+  escenarioId      Int
+  tipoUso          String?
+  fechaInicio      DateTime
+  fechaFin         DateTime
+  estado           String    @default("Activa") // Activa | Cancelada | Emergencia
+  periodo          String?
+  esEmergencia     Boolean   @default(false)
   motivoEmergencia String?
-  createdById  Int?
-  createdAt    DateTime  @default(now())
-  escenario    Escenario @relation(fields: [escenarioId], references: [id])
-  createdBy    Usuario?  @relation("reserva_creador", fields: [createdById], references: [id])
+  createdById      Int?
+  createdAt        DateTime  @default(now())
+  escenario        Escenario @relation(fields: [escenarioId], references: [id])
+  createdBy        Usuario?  @relation("reserva_creador", fields: [createdById], references: [id])
 
   @@map("reservas_escenario")
 }
 
 /// DEP-031 — log de conflictos de reservas (rechazos por solapamiento y overrides de emergencia)
 model LogConflicto {
-  id                Int       @id @default(autoincrement())
-  escenarioId       Int
+  id                 Int       @id @default(autoincrement())
+  escenarioId        Int
   reservaExistenteId Int?
-  tipo              String    // Solapamiento | Override
+  tipo               String // Solapamiento | Override
   fechaIntentoInicio DateTime?
-  fechaIntentoFin   DateTime?
-  motivo            String?
-  usuarioId         Int?
-  createdAt         DateTime  @default(now())
-  usuario           Usuario?  @relation("conflicto_usuario", fields: [usuarioId], references: [id])
+  fechaIntentoFin    DateTime?
+  motivo             String?
+  usuarioId          Int?
+  createdAt          DateTime  @default(now())
+  usuario            Usuario?  @relation("conflicto_usuario", fields: [usuarioId], references: [id])
 
   @@map("log_conflictos")
 }
 
 /// MOD-023 Mantenimiento de escenarios — alimenta KPI-029b (mantenimientos a tiempo)
 model Mantenimiento {
-  id              Int       @id @default(autoincrement())
-  escenarioId     Int
-  tipo            String    @default("Programado") // Programado | Correctivo | Emergencia
-  descripcion     String?
-  fechaInicio     DateTime?
-  fechaFin        DateTime?
-  cerradoATiempo  Boolean?
-  costo           Float     @default(0)
-  estado          String    @default("Programado") // Programado | En curso | Cerrado
-  createdById     Int?
-  createdAt       DateTime  @default(now())
-  escenario       Escenario @relation(fields: [escenarioId], references: [id])
-  createdBy       Usuario?  @relation("mant_creador", fields: [createdById], references: [id])
+  id             Int       @id @default(autoincrement())
+  escenarioId    Int
+  tipo           String    @default("Programado") // Programado | Correctivo | Emergencia
+  descripcion    String?
+  fechaInicio    DateTime?
+  fechaFin       DateTime?
+  cerradoATiempo Boolean?
+  costo          Float     @default(0)
+  estado         String    @default("Programado") // Programado | En curso | Cerrado
+  createdById    Int?
+  createdAt      DateTime  @default(now())
+  escenario      Escenario @relation(fields: [escenarioId], references: [id])
+  createdBy      Usuario?  @relation("mant_creador", fields: [createdById], references: [id])
 
   @@map("mantenimientos")
 }
 
 /// Tercero contratado (ESAL / operador / persona)
 model Tercero {
-  id          Int        @id @default(autoincrement())
-  documento   String     @unique
-  razonSocial String
-  tipo        String     @default("ESAL") // ESAL | Persona natural | Empresa
-  estado      String     @default("Activo")
-  contratos   Contrato[]
+  id               Int              @id @default(autoincrement())
+  documento        String           @unique
+  razonSocial      String
+  tipo             String           @default("ESAL") // ESAL | Persona natural | Empresa
+  estado           String           @default("Activo")
+  contratos        Contrato[]
   evaluacionesEsal EvaluacionEsal[]
 
   @@map("terceros")
@@ -334,29 +352,32 @@ model Tercero {
 
 /// MOD-010 Contratos — flujo RN-025 (doble aprobación: Financiera registra, Administrador aprueba)
 model Contrato {
-  id            Int       @id @default(autoincrement())
-  numero        String    @unique
-  objeto        String
-  terceroId     Int
-  valorTotal    Float     @default(0)
-  fechaInicio   DateTime?
-  fechaFin      DateTime?
-  supervisor    String?
-  estado        String    @default("Registrado") // Registrado | Aprobado | Rechazado | Cerrado
-  motivoRechazo String?
-  createdById   Int?
-  aprobadoById  Int?
-  aprobadoEn    DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  tercero       Tercero   @relation(fields: [terceroId], references: [id])
-  createdBy     Usuario?  @relation("registrante", fields: [createdById], references: [id])
-  aprobadoBy    Usuario?  @relation("aprobador", fields: [aprobadoById], references: [id])
-  informes      Informe[]
-  documentos    Documento[]
-  cuentasCobro  CuentaCobro[]
-  polizas       Poliza[]
+  id             Int             @id @default(autoincrement())
+  numero         String          @unique
+  objeto         String
+  terceroId      Int
+  convocatoriaId Int? // MOD-008: contrato derivado de una convocatoria adjudicada
+  valorTotal     Float           @default(0)
+  fechaInicio    DateTime?
+  fechaFin       DateTime?
+  supervisor     String?
+  estado         String          @default("Registrado") // Registrado | Aprobado | Rechazado | Cerrado
+  motivoRechazo  String?
+  createdById    Int?
+  aprobadoById   Int?
+  aprobadoEn     DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  tercero        Tercero         @relation(fields: [terceroId], references: [id])
+  convocatoria   Convocatoria?   @relation(fields: [convocatoriaId], references: [id])
+  createdBy      Usuario?        @relation("registrante", fields: [createdById], references: [id])
+  aprobadoBy     Usuario?        @relation("aprobador", fields: [aprobadoById], references: [id])
+  informes       Informe[]
+  documentos     Documento[]
+  cuentasCobro   CuentaCobro[]
+  polizas        Poliza[]
   registrosSecop RegistroSecop[]
+  actasComite    ActaComite[]
 
   @@map("contratos")
 }
@@ -364,14 +385,14 @@ model Contrato {
 /// MOD-016 Indicadores físicos — metas programadas. Sin nivel A en la matriz (varios roles con E);
 /// la aprobación del avance usa el mismo nivel E (sin SoD de doble control aquí).
 model IndicadorFisico {
-  id         Int           @id @default(autoincrement())
-  codigo     String        @unique
+  id         Int          @id @default(autoincrement())
+  codigo     String       @unique
   nombre     String
-  unidad     String?       // cupos | sesiones | beneficiarios | eventos
-  programado Float         @default(0)
+  unidad     String? // cupos | sesiones | beneficiarios | eventos
+  programado Float        @default(0)
   periodo    String
-  estado     String        @default("Activo")
-  createdAt  DateTime      @default(now())
+  estado     String       @default("Activo")
+  createdAt  DateTime     @default(now())
   avances    AvanceMeta[]
 
   @@map("indicadores_fisicos")
@@ -399,15 +420,15 @@ model AvanceMeta {
 
 /// MOD-025 Análisis de impacto — RN-021: alerta de desviación gasto financiero vs cumplimiento físico.
 model AnalisisImpacto {
-  id                 Int      @id @default(autoincrement())
-  periodo            String
-  gastoEjecutado     Float    @default(0)
-  cumplimientoFisico Float    @default(0) // % 0-100
-  ejecucionFinanciera Float   @default(0) // % 0-100
-  desviacion         Float    @default(0) // ejecucionFinanciera - cumplimientoFisico
-  createdById        Int?
-  createdAt          DateTime @default(now())
-  createdBy          Usuario? @relation("analisis_creador", fields: [createdById], references: [id])
+  id                  Int      @id @default(autoincrement())
+  periodo             String
+  gastoEjecutado      Float    @default(0)
+  cumplimientoFisico  Float    @default(0) // % 0-100
+  ejecucionFinanciera Float    @default(0) // % 0-100
+  desviacion          Float    @default(0) // ejecucionFinanciera - cumplimientoFisico
+  createdById         Int?
+  createdAt           DateTime @default(now())
+  createdBy           Usuario? @relation("analisis_creador", fields: [createdById], references: [id])
 
   @@map("analisis_impacto")
 }
@@ -417,7 +438,7 @@ model FuenteFinanciacion {
   id              Int       @id @default(autoincrement())
   codigo          String    @unique
   nombre          String
-  tipo            String?   // Nación | Departamento | Municipio | Cooperación | Propios
+  tipo            String? // Nación | Departamento | Municipio | Cooperación | Propios
   valorDisponible Float     @default(0)
   vigencia        String?
   estado          String    @default("Registrada") // Registrada | Aprobada | Rechazada
@@ -436,22 +457,22 @@ model FuenteFinanciacion {
 /// Rubro presupuestal — agrupado bajo una fuente. RN-025: Financiera propone la meta de inversión
 /// (valorAsignado), Administrador la aprueba. Solo rubros Aprobados pueden recibir cuentas de cobro.
 model Rubro {
-  id              Int      @id @default(autoincrement())
-  codigo          String   @unique
-  nombre          String
-  fuenteId        Int
-  valorAsignado   Float    @default(0) // meta de inversión del rubro
-  vigencia        String?
-  estado          String   @default("Registrado") // Registrado | Aprobado | Rechazado
-  motivoRechazo   String?
-  createdById     Int?
-  aprobadoById    Int?
-  aprobadoEn      DateTime?
-  createdAt       DateTime @default(now())
-  fuente          FuenteFinanciacion @relation(fields: [fuenteId], references: [id])
-  createdBy       Usuario? @relation("rubro_creador", fields: [createdById], references: [id])
-  aprobadoBy      Usuario? @relation("rubro_aprobador", fields: [aprobadoById], references: [id])
-  cuentas         CuentaCobro[]
+  id            Int                @id @default(autoincrement())
+  codigo        String             @unique
+  nombre        String
+  fuenteId      Int
+  valorAsignado Float              @default(0) // meta de inversión del rubro
+  vigencia      String?
+  estado        String             @default("Registrado") // Registrado | Aprobado | Rechazado
+  motivoRechazo String?
+  createdById   Int?
+  aprobadoById  Int?
+  aprobadoEn    DateTime?
+  createdAt     DateTime           @default(now())
+  fuente        FuenteFinanciacion @relation(fields: [fuenteId], references: [id])
+  createdBy     Usuario?           @relation("rubro_creador", fields: [createdById], references: [id])
+  aprobadoBy    Usuario?           @relation("rubro_aprobador", fields: [aprobadoById], references: [id])
+  cuentas       CuentaCobro[]
 
   @@map("rubros")
 }
@@ -491,7 +512,7 @@ model Pago {
   valorPagado   Float
   fechaPago     DateTime    @default(now())
   comprobante   String?
-  medioPago     String?     // Orden bancaria | Cheque | Giro
+  medioPago     String? // Orden bancaria | Cheque | Giro
   estado        String      @default("Ordenado") // Ordenado | Aprobado | Rechazado
   motivoRechazo String?
   createdById   Int?
@@ -507,22 +528,22 @@ model Pago {
 
 /// MOD-014 Control de pólizas — RN-018 (vigente para aprobar cuentas). RN-025: Financiera registra, Administrador aprueba.
 model Poliza {
-  id             Int       @id @default(autoincrement())
-  contratoId     Int
-  tipo           String?   // Cumplimiento | Responsabilidad civil | Calidad
-  aseguradora    String?
-  valor          Float     @default(0)
-  vigenciaDesde  DateTime?
-  vigenciaHasta  DateTime?
-  estado         String    @default("Registrada") // Registrada | Aprobada | Rechazada
-  motivoRechazo  String?
-  createdById    Int?
-  aprobadoById   Int?
-  aprobadoEn     DateTime?
-  createdAt      DateTime  @default(now())
-  contrato       Contrato  @relation(fields: [contratoId], references: [id])
-  createdBy      Usuario?  @relation("poliza_creador", fields: [createdById], references: [id])
-  aprobadoBy     Usuario?  @relation("poliza_aprobador", fields: [aprobadoById], references: [id])
+  id            Int       @id @default(autoincrement())
+  contratoId    Int
+  tipo          String? // Cumplimiento | Responsabilidad civil | Calidad
+  aseguradora   String?
+  valor         Float     @default(0)
+  vigenciaDesde DateTime?
+  vigenciaHasta DateTime?
+  estado        String    @default("Registrada") // Registrada | Aprobada | Rechazada
+  motivoRechazo String?
+  createdById   Int?
+  aprobadoById  Int?
+  aprobadoEn    DateTime?
+  createdAt     DateTime  @default(now())
+  contrato      Contrato  @relation(fields: [contratoId], references: [id])
+  createdBy     Usuario?  @relation("poliza_creador", fields: [createdById], references: [id])
+  aprobadoBy    Usuario?  @relation("poliza_aprobador", fields: [aprobadoById], references: [id])
 
   @@map("polizas")
 }
@@ -545,20 +566,29 @@ model RegistroSecop {
   @@map("registros_secop")
 }
 
-/// MOD-002 Personal — hoja de vida y vinculación
+/// MOD-002 Personal — hoja de vida y vinculación. RN-025: quien registra (E) no puede aprobar
+/// su propia hoja de vida; Supervisor aprueba (A) por matriz. `estado` es la baja lógica (RN-002,
+/// independiente de `estadoAprobacion`, que es el flujo de doble control sobre la vinculación).
 model Personal {
-  id              Int      @id @default(autoincrement())
-  documento       String   @unique
-  nombre          String
-  cargo           String?
-  perfil          String?
-  tipoVinculacion String?  // Planta | Contratista | OPS
-  fechaIngreso    DateTime?
-  correo          String?
-  telefono        String?
-  estado          String   @default("Activo")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id               Int       @id @default(autoincrement())
+  documento        String    @unique
+  nombre           String
+  cargo            String?
+  perfil           String?
+  tipoVinculacion  String? // Planta | Contratista | OPS
+  fechaIngreso     DateTime?
+  correo           String?
+  telefono         String?
+  estado           String    @default("Activo") // Activo | Inactivo — RN-002 baja lógica
+  estadoAprobacion String    @default("Pendiente") // Pendiente | Aprobado | Rechazado
+  motivoRechazo    String?
+  createdById      Int?
+  aprobadoById     Int?
+  aprobadoEn       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  createdBy        Usuario?  @relation("personal_creador", fields: [createdById], references: [id])
+  aprobadoBy       Usuario?  @relation("personal_aprobador", fields: [aprobadoById], references: [id])
 
   @@map("personal")
 }
@@ -599,7 +629,8 @@ model Informe {
   @@map("informes")
 }
 
-/// MOD-005 Documental — expediente documental por contrato (con versionado)
+/// MOD-005 Documental — expediente documental por contrato (con versionado). RN-025: quien
+/// carga el documento (createdById) no puede revisarlo/aprobarlo — ver revisarDocumento().
 model Documento {
   id            Int                @id @default(autoincrement())
   contratoId    Int
@@ -608,9 +639,11 @@ model Documento {
   estado        String             @default("Pendiente") // Pendiente | Cargado | En revisión | Aprobado | Rechazado | Con observaciones
   archivoUrl    String?
   observacion   String?
+  createdById   Int?
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
   contrato      Contrato           @relation(fields: [contratoId], references: [id])
+  createdBy     Usuario?           @relation("documento_creador", fields: [createdById], references: [id])
   versiones     VersionDocumento[]
 
   @@map("documentos")
@@ -632,20 +665,23 @@ model VersionDocumento {
 
 /// MOD-008 Convocatorias — RN-027: Supervisor selecciona (E), Administrador aprueba (A)
 model Convocatoria {
-  id            Int       @id @default(autoincrement())
-  nombre        String
-  tipo          String    @default("Beneficiarios")
-  descripcion   String?
-  cupos         Int       @default(0)
-  fechaApertura DateTime?
-  fechaCierre   DateTime?
-  estado        String    @default("Abierta") // Borrador | Abierta | En selección | Adjudicada | Cerrada
-  createdById   Int?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  createdBy     Usuario?               @relation("conv_creador", fields: [createdById], references: [id])
-  selecciones   SeleccionBeneficiario[]
+  id               Int                     @id @default(autoincrement())
+  nombre           String
+  tipo             String                  @default("Beneficiarios")
+  descripcion      String?
+  cupos            Int                     @default(0)
+  fechaApertura    DateTime?
+  fechaCierre      DateTime?
+  estado           String                  @default("Abierta") // Borrador | Abierta | En selección | Adjudicada | Cerrada
+  createdById      Int?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  createdBy        Usuario?                @relation("conv_creador", fields: [createdById], references: [id])
+  selecciones      SeleccionBeneficiario[]
   evaluacionesEsal EvaluacionEsal[]
+  contratos        Contrato[]
+  actasComite      ActaComite[]
+  comunicaciones   Comunicacion[]
 
   @@map("convocatorias")
 }
@@ -670,49 +706,55 @@ model SeleccionBeneficiario {
 
 /// MOD-015 Comité de control — Supervisor o Coord. deportiva registran (E), Administrador aprueba (A)
 model ActaComite {
-  id            Int       @id @default(autoincrement())
-  fecha         DateTime  @default(now())
-  tema          String
-  decision      String?
-  estado        String    @default("Registrada") // Registrada | Aprobada | Rechazada
-  motivoRechazo String?
-  createdById   Int?
-  aprobadoById  Int?
-  aprobadoEn    DateTime?
-  createdAt     DateTime  @default(now())
-  createdBy     Usuario?  @relation("acta_creador", fields: [createdById], references: [id])
-  aprobadoBy    Usuario?  @relation("acta_aprobador", fields: [aprobadoById], references: [id])
+  id             Int           @id @default(autoincrement())
+  fecha          DateTime      @default(now())
+  tema           String
+  decision       String?
+  contratoId     Int? // acta referida a un contrato específico (opcional)
+  convocatoriaId Int? // acta referida a una convocatoria específica (opcional)
+  estado         String        @default("Registrada") // Registrada | Aprobada | Rechazada
+  motivoRechazo  String?
+  createdById    Int?
+  aprobadoById   Int?
+  aprobadoEn     DateTime?
+  createdAt      DateTime      @default(now())
+  contrato       Contrato?     @relation(fields: [contratoId], references: [id])
+  convocatoria   Convocatoria? @relation(fields: [convocatoriaId], references: [id])
+  createdBy      Usuario?      @relation("acta_creador", fields: [createdById], references: [id])
+  aprobadoBy     Usuario?      @relation("acta_aprobador", fields: [aprobadoById], references: [id])
 
   @@map("actas_comite")
 }
 
 /// MOD-019 Comunicaciones — sin nivel A
 model Comunicacion {
-  id          Int      @id @default(autoincrement())
-  tipo        String   @default("Interna") // Interna | Externa | Prensa
-  canal       String?  // Correo | WhatsApp | Boletín | Redes
-  asunto      String
-  contenido   String?
-  publico     String?  // a quién va dirigida
-  estado      String   @default("Borrador") // Borrador | Enviada
-  createdById Int?
-  createdAt   DateTime @default(now())
-  createdBy   Usuario? @relation("comunicacion_creador", fields: [createdById], references: [id])
+  id             Int           @id @default(autoincrement())
+  tipo           String        @default("Interna") // Interna | Externa | Prensa
+  canal          String? // Correo | WhatsApp | Boletín | Redes
+  asunto         String
+  contenido      String?
+  publico        String? // a quién va dirigida
+  convocatoriaId Int? // comunicado derivado de una convocatoria (p. ej. resultados)
+  estado         String        @default("Borrador") // Borrador | Enviada
+  createdById    Int?
+  createdAt      DateTime      @default(now())
+  convocatoria   Convocatoria? @relation(fields: [convocatoriaId], references: [id])
+  createdBy      Usuario?      @relation("comunicacion_creador", fields: [createdById], references: [id])
 
   @@map("comunicaciones")
 }
 
 /// MOD-021 Notificaciones — cola/registro de avisos del sistema
 model Notificacion {
-  id            Int      @id @default(autoincrement())
-  tipoEvento    String   // RN-024-B | RN-026 | RN-025 | Manual
-  canal         String   @default("Sistema") // Sistema | Correo | SMS
-  destinatario  String?
-  mensaje       String
-  estadoEnvio   String   @default("Pendiente") // Pendiente | Enviada | Fallida
-  createdById   Int?
-  createdAt     DateTime @default(now())
-  createdBy     Usuario? @relation("notificacion_creador", fields: [createdById], references: [id])
+  id           Int      @id @default(autoincrement())
+  tipoEvento   String // RN-024-B | RN-026 | RN-025 | Manual
+  canal        String   @default("Sistema") // Sistema | Correo | SMS
+  destinatario String?
+  mensaje      String
+  estadoEnvio  String   @default("Pendiente") // Pendiente | Enviada | Fallida
+  createdById  Int?
+  createdAt    DateTime @default(now())
+  createdBy    Usuario? @relation("notificacion_creador", fields: [createdById], references: [id])
 
   @@map("notificaciones")
 }
@@ -744,13 +786,13 @@ model AccesoEmergenciaIAM {
 
 /// MOD-029 Infraestructura cloud — parámetros de estado/configuración
 model ConfiguracionCloud {
-  id            Int      @id @default(autoincrement())
-  clave         String   @unique
-  valor         String
-  descripcion   String?
+  id              Int      @id @default(autoincrement())
+  clave           String   @unique
+  valor           String
+  descripcion     String?
   actualizadoById Int?
-  updatedAt     DateTime @updatedAt
-  actualizadoBy Usuario? @relation("config_cloud_actualizador", fields: [actualizadoById], references: [id])
+  updatedAt       DateTime @updatedAt
+  actualizadoBy   Usuario? @relation("config_cloud_actualizador", fields: [actualizadoById], references: [id])
 
   @@map("configuracion_cloud")
 }

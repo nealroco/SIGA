@@ -36,10 +36,20 @@ export async function cambiarEstadoUsuario(fd: FormData): Promise<void> {
     redirect("/admin/usuarios");
   }
 
-  const actual = await prisma.usuario.findUnique({ where: { id: usuarioId } });
+  const actual = await prisma.usuario.findUnique({ where: { id: usuarioId }, include: { rol: true } });
   if (!actual) {
     revalidatePath("/admin/usuarios");
     redirect("/admin/usuarios");
+  }
+
+  // Sin esta comprobación, desactivar/bloquear al último Administrador dejaría el sistema
+  // sin nadie con escritura (E) en MOD-028 para revertirlo — bloqueo total (lockout).
+  if (actual!.estado === "Activo" && nuevoEstado !== "Activo" && actual!.rol.nombre === "Administrador") {
+    const otrosAdminsActivos = await prisma.usuario.count({
+      where: { estado: "Activo", id: { not: usuarioId }, rol: { nombre: "Administrador" } },
+    });
+    if (otrosAdminsActivos === 0)
+      throw new Error("No puedes dejar el sistema sin ningún Administrador activo (riesgo de bloqueo total).");
   }
 
   await prisma.usuario.update({ where: { id: usuarioId }, data: { estado: nuevoEstado } });

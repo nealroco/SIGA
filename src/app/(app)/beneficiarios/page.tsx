@@ -24,7 +24,7 @@ export default async function BeneficiariosPage({
   }
   if (estado === "Activo" || estado === "Inactivo") where.estado = estado;
 
-  const items = await prisma.beneficiario.findMany({ where, orderBy: { createdAt: "desc" } });
+  const items = await prisma.beneficiario.findMany({ where, orderBy: { createdAt: "desc" }, include: { territorio: true } });
 
   return (
     <div>
@@ -80,7 +80,7 @@ export default async function BeneficiariosPage({
                   <td>{b.nombre}</td>
                   <td className="mono">{b.edad ?? "—"}</td>
                   <td>{b.programa ?? "—"}</td>
-                  <td>{b.territorio ?? "—"}</td>
+                  <td>{b.territorio ? `${b.territorio.municipio}${b.territorio.zona ? " — " + b.territorio.zona : ""}` : "—"}</td>
                   <td>
                     <span className={`badge ${b.estado === "Activo" ? "ok" : "off"}`}>{b.estado}</span>
                   </td>

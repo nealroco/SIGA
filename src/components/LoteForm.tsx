@@ -9,7 +9,7 @@ type Values = {
   codigo?: string;
   direccion?: string | null;
   area?: number | null;
-  territorio?: string | null;
+  territorioId?: number | null;
 };
 
 type Action = (prev: FormState, fd: FormData) => Promise<FormState>;
@@ -18,10 +18,12 @@ export default function LoteForm({
   action,
   values = {},
   submitLabel,
+  territorios = [],
 }: {
   action: Action;
   values?: Values;
   submitLabel: string;
+  territorios?: { id: number; codigo: string; municipio: string; zona: string | null }[];
 }) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(action, {});
   const fe = state.fieldErrors ?? {};
@@ -38,9 +40,13 @@ export default function LoteForm({
           {fe.codigo && <span className="err">{fe.codigo}</span>}
         </div>
         <div className="field">
-          <label htmlFor="territorio">Territorio</label>
-          <input id="territorio" name="territorio" className="input" defaultValue={values.territorio ?? ""} />
-          {fe.territorio && <span className="err">{fe.territorio}</span>}
+          <label htmlFor="territorioId">Territorio</label>
+          <select id="territorioId" name="territorioId" className="select" defaultValue={values.territorioId ?? ""}>
+            <option value="">—</option>
+            {territorios.map((t) => (
+              <option key={t.id} value={t.id}>{t.municipio}{t.zona ? ` — ${t.zona}` : ""}</option>
+            ))}
+          </select>
         </div>
         <div className="field">
           <label htmlFor="direccion">Dirección</label>
