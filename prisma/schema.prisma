@@ -1,13 +1,15 @@
-// SIGA Deportes — modelo de datos (esqueleto + Beneficiarios)
-// Dev: SQLite. Producción: cambiar provider a "postgresql" y DATABASE_URL.
-// SQLite no soporta enums ni Json nativos en Prisma → se usan String (validados en app).
+// SIGA Deportes — modelo de datos.
+// Dev y producción: MySQL (Hostinger solo ofrece MySQL en su plan de app Node.js).
+// No se usan enums nativos ni Json de Prisma para mantener el modelo simple y portable
+// (validados en la capa de aplicación con Zod). Los campos de texto largo/libre llevan
+// @db.Text explícito porque MySQL trunca String a VARCHAR(191) por defecto.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -116,8 +118,8 @@ model AuditLog {
   accion        String // crear | editar | baja | login
   modulo        String // MOD-001
   registroId    String?
-  valorAnterior String? // JSON serializado
-  valorNuevo    String? // JSON serializado
+  valorAnterior String?  @db.Text // JSON serializado
+  valorNuevo    String?  @db.Text // JSON serializado
   ip            String?
   fechaHora     DateTime @default(now())
   usuario       Usuario? @relation(fields: [usuarioId], references: [id])
@@ -188,7 +190,7 @@ model DotacionEntrega {
 model Lote {
   id           Int         @id @default(autoincrement())
   codigo       String      @unique
-  direccion    String?
+  direccion    String?     @db.Text
   area         Float?
   territorioId Int?
   estado       String      @default("Activo")
@@ -206,7 +208,7 @@ model Escenario {
   id             Int                @id @default(autoincrement())
   nombre         String
   tipo           String? // Cancha | Coliseo | Piscina | Pista
-  direccion      String?
+  direccion      String?            @db.Text
   capacidad      Int?
   estado         String             @default("Activo")
   lat            Float? // MOD-024 Georeferenciación
@@ -249,10 +251,10 @@ model EvaluacionEsal {
   id             Int           @id @default(autoincrement())
   terceroId      Int
   convocatoriaId Int?
-  criterio       String?
+  criterio       String?       @db.Text
   puntaje        Float?
   estado         String        @default("Registrada") // Registrada | Aprobada | Rechazada
-  motivoRechazo  String?
+  motivoRechazo  String?       @db.Text
   createdById    Int?
   aprobadoById   Int?
   aprobadoEn     DateTime?
@@ -271,10 +273,10 @@ model EvaluacionPsicosocial {
   beneficiarioId Int
   fecha          DateTime?
   instrumento    String?
-  resultado      String?
+  resultado      String?      @db.Text
   nivelRiesgo    String? // Bajo | Medio | Alto — dispara alerta cuando es Alto
   estado         String       @default("Registrada") // Registrada | Revisada
-  observacion    String?
+  observacion    String?      @db.Text
   createdById    Int?
   createdAt      DateTime     @default(now())
   beneficiario   Beneficiario @relation(fields: [beneficiarioId], references: [id])
@@ -293,7 +295,7 @@ model ReservaEscenario {
   estado           String    @default("Activa") // Activa | Cancelada | Emergencia
   periodo          String?
   esEmergencia     Boolean   @default(false)
-  motivoEmergencia String?
+  motivoEmergencia String?   @db.Text
   createdById      Int?
   createdAt        DateTime  @default(now())
   escenario        Escenario @relation(fields: [escenarioId], references: [id])
@@ -310,7 +312,7 @@ model LogConflicto {
   tipo               String // Solapamiento | Override
   fechaIntentoInicio DateTime?
   fechaIntentoFin    DateTime?
-  motivo             String?
+  motivo             String?   @db.Text
   usuarioId          Int?
   createdAt          DateTime  @default(now())
   usuario            Usuario?  @relation("conflicto_usuario", fields: [usuarioId], references: [id])
@@ -323,7 +325,7 @@ model Mantenimiento {
   id             Int       @id @default(autoincrement())
   escenarioId    Int
   tipo           String    @default("Programado") // Programado | Correctivo | Emergencia
-  descripcion    String?
+  descripcion    String?   @db.Text
   fechaInicio    DateTime?
   fechaFin       DateTime?
   cerradoATiempo Boolean?
@@ -354,7 +356,7 @@ model Tercero {
 model Contrato {
   id             Int             @id @default(autoincrement())
   numero         String          @unique
-  objeto         String
+  objeto         String          @db.Text
   terceroId      Int
   convocatoriaId Int? // MOD-008: contrato derivado de una convocatoria adjudicada
   valorTotal     Float           @default(0)
@@ -362,7 +364,7 @@ model Contrato {
   fechaFin       DateTime?
   supervisor     String?
   estado         String          @default("Registrado") // Registrado | Aprobado | Rechazado | Cerrado
-  motivoRechazo  String?
+  motivoRechazo  String?         @db.Text
   createdById    Int?
   aprobadoById   Int?
   aprobadoEn     DateTime?
@@ -406,7 +408,7 @@ model AvanceMeta {
   cantidadAprobada  Float?
   estado            String          @default("Reportado") // Reportado | Aprobado | Rechazado
   periodo           String?
-  motivoRechazo     String?
+  motivoRechazo     String?         @db.Text
   createdById       Int?
   aprobadoById      Int?
   aprobadoEn        DateTime?
@@ -442,7 +444,7 @@ model FuenteFinanciacion {
   valorDisponible Float     @default(0)
   vigencia        String?
   estado          String    @default("Registrada") // Registrada | Aprobada | Rechazada
-  motivoRechazo   String?
+  motivoRechazo   String?   @db.Text
   createdById     Int?
   aprobadoById    Int?
   aprobadoEn      DateTime?
@@ -464,7 +466,7 @@ model Rubro {
   valorAsignado Float              @default(0) // meta de inversión del rubro
   vigencia      String?
   estado        String             @default("Registrado") // Registrado | Aprobado | Rechazado
-  motivoRechazo String?
+  motivoRechazo String?            @db.Text
   createdById   Int?
   aprobadoById  Int?
   aprobadoEn    DateTime?
@@ -488,7 +490,7 @@ model CuentaCobro {
   valorCobrado  Float     @default(0)
   valorAprobado Float?
   estado        String    @default("Registrada") // Registrada | Aprobada | Rechazada | Pagada
-  motivoRechazo String?
+  motivoRechazo String?   @db.Text
   createdById   Int?
   aprobadoById  Int?
   aprobadoEn    DateTime?
@@ -514,7 +516,7 @@ model Pago {
   comprobante   String?
   medioPago     String? // Orden bancaria | Cheque | Giro
   estado        String      @default("Ordenado") // Ordenado | Aprobado | Rechazado
-  motivoRechazo String?
+  motivoRechazo String?     @db.Text
   createdById   Int?
   aprobadoById  Int?
   aprobadoEn    DateTime?
@@ -536,7 +538,7 @@ model Poliza {
   vigenciaDesde DateTime?
   vigenciaHasta DateTime?
   estado        String    @default("Registrada") // Registrada | Aprobada | Rechazada
-  motivoRechazo String?
+  motivoRechazo String?   @db.Text
   createdById   Int?
   aprobadoById  Int?
   aprobadoEn    DateTime?
@@ -554,7 +556,7 @@ model RegistroSecop {
   contratoId    Int
   procesoSecop  String
   estadoSync    String    @default("Registrado") // Registrado | Aprobado | Rechazado | Sincronizado
-  motivoRechazo String?
+  motivoRechazo String?   @db.Text
   createdById   Int?
   aprobadoById  Int?
   aprobadoEn    DateTime?
@@ -581,7 +583,7 @@ model Personal {
   telefono         String?
   estado           String    @default("Activo") // Activo | Inactivo — RN-002 baja lógica
   estadoAprobacion String    @default("Pendiente") // Pendiente | Aprobado | Rechazado
-  motivoRechazo    String?
+  motivoRechazo    String?   @db.Text
   createdById      Int?
   aprobadoById     Int?
   aprobadoEn       DateTime?
@@ -599,8 +601,8 @@ model Seguimiento {
   beneficiarioId Int
   programa       String?
   fecha          DateTime?
-  actividad      String
-  observacion    String?
+  actividad      String       @db.Text
+  observacion    String?      @db.Text
   estado         String       @default("Registrado")
   createdById    Int?
   createdAt      DateTime     @default(now())
@@ -617,7 +619,7 @@ model Informe {
   periodo             String // p. ej. 2026-01
   fechaRadicacion     DateTime?
   estado              String    @default("Radicado") // Radicado | Aprobado | Devuelto | Con observaciones
-  observacion         String?
+  observacion         String?   @db.Text
   periodoCerrado      Boolean   @default(false) // RN-022
   certificadoGenerado Boolean   @default(false) // RN-023/RN-026
   createdById         Int?
@@ -637,8 +639,8 @@ model Documento {
   tipoDocumento String
   obligatorio   Boolean            @default(false)
   estado        String             @default("Pendiente") // Pendiente | Cargado | En revisión | Aprobado | Rechazado | Con observaciones
-  archivoUrl    String?
-  observacion   String?
+  archivoUrl    String?            @db.Text
+  observacion   String?            @db.Text
   createdById   Int?
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
@@ -653,10 +655,10 @@ model Documento {
 model VersionDocumento {
   id           Int       @id @default(autoincrement())
   documentoId  Int
-  archivoUrl   String?
+  archivoUrl   String?   @db.Text
   version      Int       @default(1)
   usuarioCarga String?
-  nota         String?
+  nota         String?   @db.Text
   createdAt    DateTime  @default(now())
   documento    Documento @relation(fields: [documentoId], references: [id], onDelete: Cascade)
 
@@ -668,7 +670,7 @@ model Convocatoria {
   id               Int                     @id @default(autoincrement())
   nombre           String
   tipo             String                  @default("Beneficiarios")
-  descripcion      String?
+  descripcion      String?                 @db.Text
   cupos            Int                     @default(0)
   fechaApertura    DateTime?
   fechaCierre      DateTime?
@@ -709,11 +711,11 @@ model ActaComite {
   id             Int           @id @default(autoincrement())
   fecha          DateTime      @default(now())
   tema           String
-  decision       String?
+  decision       String?       @db.Text
   contratoId     Int? // acta referida a un contrato específico (opcional)
   convocatoriaId Int? // acta referida a una convocatoria específica (opcional)
   estado         String        @default("Registrada") // Registrada | Aprobada | Rechazada
-  motivoRechazo  String?
+  motivoRechazo  String?       @db.Text
   createdById    Int?
   aprobadoById   Int?
   aprobadoEn     DateTime?
@@ -732,7 +734,7 @@ model Comunicacion {
   tipo           String        @default("Interna") // Interna | Externa | Prensa
   canal          String? // Correo | WhatsApp | Boletín | Redes
   asunto         String
-  contenido      String?
+  contenido      String?       @db.Text
   publico        String? // a quién va dirigida
   convocatoriaId Int? // comunicado derivado de una convocatoria (p. ej. resultados)
   estado         String        @default("Borrador") // Borrador | Enviada
@@ -750,7 +752,7 @@ model Notificacion {
   tipoEvento   String // RN-024-B | RN-026 | RN-025 | Manual
   canal        String   @default("Sistema") // Sistema | Correo | SMS
   destinatario String?
-  mensaje      String
+  mensaje      String   @db.Text
   estadoEnvio  String   @default("Pendiente") // Pendiente | Enviada | Fallida
   createdById  Int?
   createdAt    DateTime @default(now())
@@ -763,7 +765,7 @@ model Notificacion {
 model HallazgoAuditoria {
   id          Int      @id @default(autoincrement())
   modulo      String?
-  descripcion String
+  descripcion String   @db.Text
   gravedad    String   @default("Media") // Baja | Media | Alta
   estado      String   @default("Abierto") // Abierto | Cerrado
   createdById Int?
@@ -777,7 +779,7 @@ model HallazgoAuditoria {
 model AccesoEmergenciaIAM {
   id        Int      @id @default(autoincrement())
   usuarioId Int?
-  motivo    String
+  motivo    String   @db.Text
   createdAt DateTime @default(now())
   usuario   Usuario? @relation("acceso_emergencia_usuario", fields: [usuarioId], references: [id])
 
@@ -788,8 +790,8 @@ model AccesoEmergenciaIAM {
 model ConfiguracionCloud {
   id              Int      @id @default(autoincrement())
   clave           String   @unique
-  valor           String
-  descripcion     String?
+  valor           String   @db.Text
+  descripcion     String?  @db.Text
   actualizadoById Int?
   updatedAt       DateTime @updatedAt
   actualizadoBy   Usuario? @relation("config_cloud_actualizador", fields: [actualizadoById], references: [id])

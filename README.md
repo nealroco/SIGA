@@ -11,19 +11,32 @@ detalle de cada fase y las reglas de negocio que estrena.
 
 - **Next.js 16** (App Router) + **TypeScript** + **React 19**
 - **Tailwind v4** + identidad visual SIGA (navy / azul eléctrico / coral; Bricolage Grotesque · Inter · JetBrains Mono)
-- **Prisma 6** · **SQLite** en desarrollo (schema *Postgres-ready*: en producción se cambia el `provider` a `postgresql`)
+- **Prisma 6** · **MySQL** en dev y producción (Hostinger, plan "App web de Node.js", solo ofrece MySQL —
+  no hay Postgres disponible en ese plan). Los campos de texto largo/libre llevan `@db.Text` explícito
+  porque MySQL trunca `String` a `VARCHAR(191)` por defecto.
 - **Auth.js v5 (NextAuth)** — credenciales, sesión JWT con el rol del usuario
 
 ## Requisitos
 
-- Node 20+ (este repo se construyó con Node 24 vía nvm). Sin Docker: la BD de desarrollo es SQLite (archivo local).
+- Node 20+ (este repo se construyó con Node 24 vía nvm).
+- **MySQL 8.4+ local para desarrollo** (sin Homebrew ni sudo en este entorno): se instaló el tar.gz oficial
+  de MySQL Community Server en `~/mysql-siga` y se corre como proceso de usuario en el puerto `3307`
+  (nunca el 3306 por defecto, para no chocar con una instalación futura). Arrancarlo:
+  ```bash
+  ~/mysql-siga/mysql-8.4.10-macos15-arm64/bin/mysqld \
+    --basedir=~/mysql-siga/mysql-8.4.10-macos15-arm64 \
+    --datadir=~/mysql-siga/data --socket=~/mysql-siga/mysql.sock \
+    --pid-file=~/mysql-siga/mysql.pid --port=3307 --bind-address=127.0.0.1 \
+    --log-error=~/mysql-siga/logs/mysqld.log &
+  ```
+  Base de datos `siga_deportes` y usuario `siga` ya creados (ver `.env`).
 
 ## Puesta en marcha
 
 ```bash
 npm install
-cp .env.example .env          # ya incluido un .env de desarrollo
-npx prisma migrate dev        # crea prisma/dev.db y aplica el esquema
+cp .env.example .env          # ajusta DATABASE_URL si tu MySQL local usa otro puerto/credenciales
+npx prisma db push            # crea/sincroniza las tablas en MySQL (no se usa `migrate dev`: no hay TTY)
 npx prisma db seed            # 9 roles, 29 módulos, matriz 9×29, usuarios y beneficiarios de muestra
 npm run dev                   # http://localhost:3000
 ```
@@ -125,7 +138,13 @@ Escenario (editar/baja lógica).
 3. Páginas en `src/app/(app)/<modulo>/…` reutilizando los componentes y la identidad.
 4. La navegación y los permisos ya salen automáticamente de la matriz sembrada (hoja Roles_Permisos del v4).
 
-## Producción (PostgreSQL)
+## Producción (Hostinger — App web de Node.js)
 
-Cambiar en `prisma/schema.prisma` el `datasource db { provider = "postgresql" }` y `DATABASE_URL` a la cadena de
-Postgres; `enum`/`Json` pueden reintroducirse (SQLite no los soporta y por eso aquí se usan `String`).
+Dev y producción usan el mismo motor (MySQL), así que no hay que tocar `prisma/schema.prisma` al desplegar:
+
+1. En el panel de Hostinger, crear la app "App web de Node.js" y conectar el repo `nealroco/SIGA`.
+2. Crear la base de datos MySQL que ofrece ese plan y copiar la cadena de conexión a `DATABASE_URL`
+   (formato `mysql://usuario:password@host:3306/nombre_bd`) en las variables de entorno de la app.
+3. `npx prisma db push` (o el equivalente en el flujo de build de Hostinger) para crear las tablas.
+4. `npx prisma db seed` **solo** la primera vez, para cargar roles/módulos/matriz de permisos — luego
+   editar usuarios reales desde `/admin/usuarios` en vez de re-sembrar.
