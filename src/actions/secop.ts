@@ -47,6 +47,10 @@ export async function crearRegistroSecop(_prev: FormState, fd: FormData): Promis
   const contrato = await prisma.contrato.findUnique({ where: { id: d.contratoId } });
   if (!contrato) return { fieldErrors: { contratoId: "El contrato seleccionado no existe." } };
 
+  // Deduplicación: un contrato solo puede tener un registro SECOP (ver @unique en el modelo).
+  const existente = await prisma.registroSecop.findUnique({ where: { contratoId: d.contratoId } });
+  if (existente) return { fieldErrors: { contratoId: `Este contrato ya tiene un registro SECOP (#${existente.id}, estado ${existente.estadoSync}).` } };
+
   const creado = await prisma.registroSecop.create({
     data: {
       contratoId: d.contratoId,

@@ -16,11 +16,21 @@ function badgeDesviacion(d: number): string {
   return "C";
 }
 
-export default async function ImpactoPage() {
+export default async function ImpactoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ periodo?: string }>;
+}) {
   const session = await auth();
   const puedeCrear = session ? await can(session.user.rol, "MOD-025", "crear") : false;
 
-  const items = await prisma.analisisImpacto.findMany({ orderBy: { createdAt: "desc" } });
+  const sp = await searchParams;
+  const periodo = sp.periodo ?? "";
+
+  const [items, periodosDisponibles] = await Promise.all([
+    prisma.analisisImpacto.findMany({ where: periodo ? { periodo } : {}, orderBy: { createdAt: "desc" } }),
+    prisma.analisisImpacto.findMany({ distinct: ["periodo"], select: { periodo: true }, orderBy: { periodo: "desc" } }),
+  ]);
   const ultimo = items[0];
 
   return (
@@ -37,11 +47,24 @@ export default async function ImpactoPage() {
         )}
       </div>
 
+      <form className="toolbar" method="get" style={{ marginTop: 18 }}>
+        <select className="select" name="periodo" defaultValue={periodo} style={{ width: 200 }}>
+          <option value="">Todos los períodos</option>
+          {periodosDisponibles.map((p) => (
+            <option key={p.periodo} value={p.periodo}>{p.periodo}</option>
+          ))}
+        </select>
+        <button className="btn btn-blue" type="submit">Filtrar</button>
+        {periodo && <Link href="/impacto" className="btn">Limpiar</Link>}
+      </form>
+
       <div style={{ marginTop: 14 }}>
-        <p className="section-cap">Último análisis generado</p>
+        <p className="section-cap">{periodo ? `Último análisis generado (período ${periodo})` : "Último análisis generado"}</p>
         {!ultimo ? (
           <div className="card" style={{ padding: 24 }}>
-            <p className="empty">Aún no se ha generado ningún análisis de impacto.</p>
+            <p className="empty">
+              {periodo ? `Ningún análisis generado para el período ${periodo}.` : "Aún no se ha generado ningún análisis de impacto."}
+            </p>
           </div>
         ) : (
           <div className="kpi-grid">

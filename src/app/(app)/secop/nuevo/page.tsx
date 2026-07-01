@@ -10,7 +10,11 @@ export const dynamic = "force-dynamic";
 export default async function NuevoRegistroSecopPage() {
   const session = await auth();
   const puedeCrear = session ? await can(session.user.rol, "MOD-027", "crear") : false;
-  const contratos = await prisma.contrato.findMany({ orderBy: { numero: "asc" } });
+  // Deduplicación: no se ofrecen contratos que ya tienen un registro SECOP (ver @unique en el modelo).
+  const contratos = await prisma.contrato.findMany({
+    where: { registroSecop: null },
+    orderBy: { numero: "asc" },
+  });
 
   return (
     <div>

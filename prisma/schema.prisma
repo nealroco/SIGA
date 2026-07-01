@@ -518,7 +518,7 @@ model Contrato {
   documentos     Documento[]
   cuentasCobro   CuentaCobro[]
   polizas        Poliza[]
-  registrosSecop RegistroSecop[]
+  registroSecop  RegistroSecop?
   actasComite    ActaComite[]
 
   @@map("contratos")
@@ -693,7 +693,7 @@ model Poliza {
 /// MOD-027 Integración SECOP II — RN-025: Financiera registra, Administrador aprueba.
 model RegistroSecop {
   id            Int       @id @default(autoincrement())
-  contratoId    Int
+  contratoId    Int       @unique // deduplicación: a lo sumo un registro SECOP por contrato
   procesoSecop  String
   estadoSync    String    @default("Registrado") // Registrado | Aprobado | Rechazado | Sincronizado
   motivoRechazo String?   @db.Text

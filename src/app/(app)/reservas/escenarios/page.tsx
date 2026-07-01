@@ -52,11 +52,12 @@ export default async function EscenariosPage() {
               <th>Dirección</th>
               <th>Capacidad</th>
               <th>Estado</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 ? (
-              <tr><td colSpan={5} className="empty">No hay escenarios.</td></tr>
+              <tr><td colSpan={6} className="empty">No hay escenarios.</td></tr>
             ) : (
               items.map((e) => (
                 <tr key={e.id}>
@@ -65,6 +66,9 @@ export default async function EscenariosPage() {
                   <td>{e.direccion ?? "—"}</td>
                   <td className="mono">{e.capacidad ?? "—"}</td>
                   <td><span className={`badge ${e.estado === "Activo" ? "ok" : "off"}`}>{e.estado}</span></td>
+                  <td>
+                    <Link href={`/reservas/escenarios/${e.id}`} className="btn btn-sm">Ver / editar</Link>
+                  </td>
                 </tr>
               ))
             )}

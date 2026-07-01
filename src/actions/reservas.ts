@@ -62,6 +62,76 @@ export async function crearEscenario(_prev: FormState, fd: FormData): Promise<Fo
   redirect("/reservas/escenarios");
 }
 
+export async function editarEscenario(_prev: FormState, fd: FormData): Promise<FormState> {
+  const session = await auth();
+  if (!session?.user) return { error: "Sesión expirada." };
+  if (!(await can(session.user.rol, MOD, "editar")))
+    return { error: `No autorizado: editar escenarios requiere escritura (E) en MOD-022. Tu rol es ${session.user.rol}.` };
+
+  const id = Number(fd.get("id"));
+  if (!id) return { error: "Escenario no válido." };
+  const actual = await prisma.escenario.findUnique({ where: { id } });
+  if (!actual) return { error: "El escenario no existe." };
+
+  const parsed = escenarioSchema.safeParse({
+    nombre: fd.get("nombre"),
+    tipo: fd.get("tipo"),
+    direccion: fd.get("direccion"),
+    capacidad: fd.get("capacidad"),
+  });
+  if (!parsed.success) return { fieldErrors: fieldErrorsOf(parsed.error) };
+  const d = parsed.data;
+
+  await prisma.escenario.update({
+    where: { id },
+    data: {
+      nombre: d.nombre,
+      tipo: d.tipo ?? null,
+      direccion: d.direccion ?? null,
+      capacidad: d.capacidad ?? null,
+    },
+  });
+  await writeAudit({
+    usuarioId: Number(session.user.id),
+    accion: "editar",
+    modulo: MOD,
+    registroId: id,
+    valorAnterior: { nombre: actual.nombre, tipo: actual.tipo, direccion: actual.direccion, capacidad: actual.capacidad },
+    valorNuevo: { nombre: d.nombre, tipo: d.tipo, direccion: d.direccion, capacidad: d.capacidad },
+  });
+  revalidatePath("/reservas/escenarios");
+  redirect("/reservas/escenarios");
+}
+
+// RN-002: la "eliminación" es baja lógica (estado = Inactivo), nunca DELETE físico.
+export async function darDeBajaEscenario(fd: FormData): Promise<void> {
+  const session = await auth();
+  if (!session?.user) return;
+  if (!(await can(session.user.rol, MOD, "eliminar"))) {
+    throw new Error(`No autorizado: dar de baja escenarios requiere escritura (E) en MOD-022. Tu rol es ${session.user.rol}.`);
+  }
+  const id = Number(fd.get("id"));
+  if (!id) return;
+
+  const actual = await prisma.escenario.findUnique({ where: { id } });
+  if (!actual || actual.estado === "Inactivo") {
+    revalidatePath("/reservas/escenarios");
+    redirect("/reservas/escenarios");
+  }
+
+  await prisma.escenario.update({ where: { id }, data: { estado: "Inactivo" } });
+  await writeAudit({
+    usuarioId: Number(session.user.id),
+    accion: "baja",
+    modulo: MOD,
+    registroId: id,
+    valorAnterior: { estado: "Activo" },
+    valorNuevo: { estado: "Inactivo" },
+  });
+  revalidatePath("/reservas/escenarios");
+  redirect("/reservas/escenarios");
+}
+
 const reservaSchema = z.object({
   escenarioId: z.preprocess((v) => Number(v), z.number().int().positive("Selecciona un escenario")),
   tipoUso: z.preprocess((v) => (v === "" || v == null ? undefined : v), z.string().optional()),
