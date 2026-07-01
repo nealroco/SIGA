@@ -33,11 +33,14 @@ export default async function BeneficiariosPage({
           <h1 className="page-title">Beneficiarios</h1>
           <p className="page-sub">MOD-001 · registro y caracterización de beneficiarios.</p>
         </div>
-        {puedeCrear ? (
-          <Link href="/beneficiarios/nuevo" className="btn btn-primary">+ Nuevo beneficiario</Link>
-        ) : (
-          <span className="badge L" title="Tu rol tiene solo lectura en MOD-001">Solo lectura</span>
-        )}
+        <div style={{ display: "flex", gap: 10 }}>
+          <Link href="/beneficiarios/estadisticas" className="btn">Estadísticas</Link>
+          {puedeCrear ? (
+            <Link href="/beneficiarios/nuevo" className="btn btn-primary">+ Nuevo beneficiario</Link>
+          ) : (
+            <span className="badge L" title="Tu rol tiene solo lectura en MOD-001">Solo lectura</span>
+          )}
+        </div>
       </div>
 
       <form className="toolbar" method="get">

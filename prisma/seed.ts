@@ -193,7 +193,10 @@ function extraCampos(i: number) {
     docAceptoPoliticaDatos: k % 13 !== 0,
 
     cuentaConAlimentacion: k % 2 === 0,
-    tipoComplementoAlimentario: k % 2 === 0 ? POOL_TIPO_COMPLEMENTO[k % 2] : ("N/A" as const),
+    // Nota: el índice usa Math.floor(k/2), no k%2 — usar k%2 aquí colapsaría siempre al índice 0
+    // ("Refrigerio") porque k%2===0 es también la condición de la rama, dejando "Almuerzo" inalcanzable.
+    tipoComplementoAlimentario:
+      k % 2 === 0 ? POOL_TIPO_COMPLEMENTO[Math.floor(k / 2) % POOL_TIPO_COMPLEMENTO.length] : ("N/A" as const),
     requiereAlimentacionCentro: k % 2 === 0 && k % 3 === 0,
 
     medioTransporte: POOL_MEDIO_TRANSPORTE[k % POOL_MEDIO_TRANSPORTE.length],

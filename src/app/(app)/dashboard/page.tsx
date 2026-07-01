@@ -8,7 +8,7 @@ import { beneficiariosPorMes, tieneTendenciaSuficiente, MIN_MESES_PARA_TENDENCIA
 import { buildInsights } from "@/lib/insights";
 import Sparkline from "@/components/charts/Sparkline";
 import Donut from "@/components/charts/Donut";
-import ProgramaBarChart from "@/components/charts/ProgramaBarChart";
+import BarChartSimple from "@/components/charts/BarChartSimple";
 
 export const dynamic = "force-dynamic";
 
@@ -163,7 +163,7 @@ export default async function DashboardPage() {
             <div className="card" style={{ padding: 24 }}><p className="empty">Sin datos</p></div>
           ) : (
             <div className="card" style={{ padding: "18px 8px" }}>
-              <ProgramaBarChart data={porPrograma} />
+              <BarChartSimple data={porPrograma.map((p) => ({ label: p.programa, count: p.count }))} />
             </div>
           )}
           <div style={{ marginTop: 16 }}>
