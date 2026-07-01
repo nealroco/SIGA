@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LayoutGrid } from "lucide-react";
+import { MODULO_ICONO, CATEGORIA_ICONO } from "@/lib/iconos";
 
-export type ModuloNav = { codigo: string; nombre: string; nivel: string };
+export type ModuloNav = { codigo: string; nombre: string; nivel: string; categoria: string | null };
 
 function hrefFor(codigo: string): string {
   if (codigo === "MOD-001") return "/beneficiarios";
@@ -38,8 +40,19 @@ function hrefFor(codigo: string): string {
   return `/modulo/${codigo}`;
 }
 
+function agruparPorCategoria(modulos: ModuloNav[]): [string, ModuloNav[]][] {
+  const grupos = new Map<string, ModuloNav[]>();
+  for (const m of modulos) {
+    const cat = m.categoria ?? "Otros";
+    if (!grupos.has(cat)) grupos.set(cat, []);
+    grupos.get(cat)!.push(m);
+  }
+  return Array.from(grupos.entries());
+}
+
 export default function Sidebar({ modulos }: { modulos: ModuloNav[] }) {
   const pathname = usePathname();
+  const grupos = agruparPorCategoria(modulos);
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -47,14 +60,27 @@ export default function Sidebar({ modulos }: { modulos: ModuloNav[] }) {
       </div>
       <div className="side-cap">Módulos · {modulos.length}</div>
       <nav>
-        {modulos.map((m) => {
-          const href = hrefFor(m.codigo);
-          const active = href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
+        {grupos.map(([categoria, items]) => {
+          const CategoriaIcon = CATEGORIA_ICONO[categoria] ?? LayoutGrid;
           return (
-            <Link key={m.codigo} href={href} className={`nav-item${active ? " active" : ""}`}>
-              <span>{m.nombre}</span>
-              <span className="code">{m.codigo}</span>
-            </Link>
+            <div key={categoria} className="nav-group">
+              <div className="side-cap nav-group-cap">
+                <CategoriaIcon size={13} />
+                <span>{categoria}</span>
+              </div>
+              {items.map((m) => {
+                const href = hrefFor(m.codigo);
+                const active = href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
+                const ModuloIcon = MODULO_ICONO[m.codigo] ?? LayoutGrid;
+                return (
+                  <Link key={m.codigo} href={href} className={`nav-item${active ? " active" : ""}`}>
+                    <ModuloIcon size={16} />
+                    <span>{m.nombre}</span>
+                    <span className="code">{m.codigo}</span>
+                  </Link>
+                );
+              })}
+            </div>
           );
         })}
       </nav>

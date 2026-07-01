@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/db";
+import { NIVEL_ICONO } from "@/lib/iconos";
+import type { Nivel } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -37,10 +39,14 @@ export default async function PermisosPage() {
                   <span className="doc">{m.codigo}</span> {m.nombre}
                 </td>
                 {roles.map((r) => {
-                  const nivel = nivelMap.get(key(r.id, m.id)) ?? "NONE";
+                  const nivel = (nivelMap.get(key(r.id, m.id)) ?? "NONE") as Nivel;
+                  const NivelIcon = NIVEL_ICONO[nivel];
                   return (
                     <td key={r.id} className="matrix-cell">
-                      <span className={`badge ${nivel}`}>{nivel === "NONE" ? "—" : nivel}</span>
+                      <span className={`badge ${nivel}`}>
+                        <NivelIcon />
+                        {nivel === "NONE" ? "—" : nivel}
+                      </span>
                     </td>
                   );
                 })}

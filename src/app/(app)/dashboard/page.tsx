@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Users, UserCheck, UserX, LayoutGrid, FileSignature, TrendingUp, FolderCheck } from "lucide-react";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -38,22 +39,22 @@ export default async function DashboardPage() {
 
       <div className="kpi-grid" style={{ marginTop: 22 }}>
         <div className="card kpi accent">
-          <div className="lab">Beneficiarios</div>
+          <div className="lab"><Users size={14} /> Beneficiarios</div>
           <div className="val">{total}</div>
           <div className="hint">MOD-001 · total registrados</div>
         </div>
         <div className="card kpi">
-          <div className="lab">Activos</div>
+          <div className="lab"><UserCheck size={14} /> Activos</div>
           <div className="val">{activos}</div>
           <div className="hint">en operación</div>
         </div>
         <div className="card kpi">
-          <div className="lab">Inactivos</div>
+          <div className="lab"><UserX size={14} /> Inactivos</div>
           <div className="val">{inactivos}</div>
           <div className="hint">baja lógica (RN-002)</div>
         </div>
         <div className="card kpi">
-          <div className="lab">Módulos</div>
+          <div className="lab"><LayoutGrid size={14} /> Módulos</div>
           <div className="val">{modulos}</div>
           <div className="hint">{roles} roles · matriz 9×{modulos}</div>
         </div>
@@ -63,17 +64,17 @@ export default async function DashboardPage() {
         <p className="section-cap">KPIs cruzados (RN-016: visibles según módulos activos)</p>
         <div className="kpi-grid">
           <div className="card kpi">
-            <div className="lab">Contratos aprobados</div>
+            <div className="lab"><FileSignature size={14} /> Contratos aprobados</div>
             <div className="val">{contratosActivos}</div>
             <div className="hint">{contratosPendientes} pendientes de aprobación</div>
           </div>
           <div className="card kpi">
-            <div className="lab">% ejecución financiera</div>
+            <div className="lab"><TrendingUp size={14} /> % ejecución financiera</div>
             <div className="val">{pctEjecucion}%</div>
             <div className="hint">{cop.format(totalPagado)} / {cop.format(totalAprobado)}</div>
           </div>
           <div className="card kpi">
-            <div className="lab">Expediente documental</div>
+            <div className="lab"><FolderCheck size={14} /> Expediente documental</div>
             <div className="val">{pctDocumental}%</div>
             <div className="hint">{docsAprobados} / {docsTotal} documentos aprobados</div>
           </div>

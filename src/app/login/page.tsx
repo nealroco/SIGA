@@ -1,6 +1,11 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { ROL_ICONO } from "@/lib/iconos";
 import LoginForm from "./LoginForm";
+
+const AdminIcon = ROL_ICONO["Administrador"];
+const RevisorIcon = ROL_ICONO["Revisor"];
+const CoordIcon = ROL_ICONO["Coord. deportiva"];
 
 export default async function LoginPage() {
   const session = await auth();
@@ -19,9 +24,9 @@ export default async function LoginPage() {
         <div className="login-hint">
           Demo · usuarios sembrados:
           <br />
-          <code>admin@sigadeportes.co</code> (Administrador) ·{" "}
-          <code>revisor@sigadeportes.co</code> (Revisor) ·{" "}
-          <code>coord@sigadeportes.co</code> (Coord. deportiva)
+          <span className="login-hint-row"><AdminIcon size={13} /> <code>admin@sigadeportes.co</code> (Administrador)</span>{" · "}
+          <span className="login-hint-row"><RevisorIcon size={13} /> <code>revisor@sigadeportes.co</code> (Revisor)</span>{" · "}
+          <span className="login-hint-row"><CoordIcon size={13} /> <code>coord@sigadeportes.co</code> (Coord. deportiva)</span>
           <br />
           Contraseña: <code>siga2026</code>
         </div>

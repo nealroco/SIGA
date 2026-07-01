@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { ArrowRight } from "lucide-react";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -55,7 +56,7 @@ export default function LoginForm() {
         />
       </div>
       <button className="btn btn-primary" type="submit" disabled={loading}>
-        {loading ? "Ingresando…" : "Ingresar →"}
+        {loading ? "Ingresando…" : <>Ingresar <ArrowRight size={16} /></>}
       </button>
     </form>
   );

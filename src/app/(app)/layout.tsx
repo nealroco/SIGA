@@ -12,7 +12,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="app-shell">
-      <Sidebar modulos={modulos.map((m) => ({ codigo: m.codigo, nombre: m.nombre, nivel: m.nivel }))} />
+      <Sidebar
+        modulos={modulos.map((m) => ({ codigo: m.codigo, nombre: m.nombre, nivel: m.nivel, categoria: m.categoria }))}
+      />
       <div className="main">
         <Topbar nombre={session.user.name ?? "Usuario"} rol={session.user.rol} />
         <div className="content">{children}</div>

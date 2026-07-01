@@ -48,8 +48,13 @@ a { color: inherit; text-decoration: none; }
 .nav-item.active { background: rgba(59,107,255,.16); color: #fff; }
 .nav-item.active::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px;
   background: var(--coral); border-radius: 3px; }
+.nav-item svg { flex-shrink: 0; opacity: .85; }
+.nav-item.active svg { opacity: 1; color: var(--blue-3); }
 .nav-item .code { font-family: var(--font-mono); font-size: .62rem; color: var(--txt-3); margin-left: auto; }
 .nav-item.active .code { color: var(--blue-3); }
+.nav-group + .nav-group { margin-top: 2px; }
+.nav-group-cap { display: flex; align-items: center; gap: 6px; }
+.nav-group-cap svg { flex-shrink: 0; opacity: .8; }
 
 /* ===== Topbar + content ===== */
 .main { display: flex; flex-direction: column; min-width: 0; }
@@ -72,7 +77,8 @@ a { color: inherit; text-decoration: none; }
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; }
 .kpi { padding: 18px 20px; }
 .kpi .lab { font-family: var(--font-mono); font-size: .68rem; letter-spacing: .06em; text-transform: uppercase;
-  color: var(--muted-2); }
+  color: var(--muted-2); display: flex; align-items: center; gap: 6px; }
+.kpi .lab svg { flex-shrink: 0; }
 .kpi .val { font-family: var(--font-display); font-weight: 800; font-size: 2.1rem; color: var(--ink);
   letter-spacing: -.02em; margin-top: 4px; }
 .kpi .hint { font-size: .76rem; color: var(--muted); margin-top: 2px; }
@@ -106,6 +112,7 @@ table.data .doc { font-family: var(--font-mono); font-size: .82rem; color: var(-
 /* ===== Badges ===== */
 .badge { display: inline-flex; align-items: center; gap: 5px; font-size: .72rem; font-weight: 600;
   padding: 3px 9px; border-radius: 99px; border: 1px solid transparent; }
+.badge svg { flex-shrink: 0; width: 12px; height: 12px; }
 .badge.ok { background: #e6f6ec; color: #157347; border-color: #bfe6cc; }
 .badge.off { background: #f1f2f6; color: #6b7280; border-color: #e0e2ea; }
 .badge.E { background: #e6f6ec; color: #157347; } .badge.A { background: #fff4d6; color: #9a6a00; }
@@ -121,9 +128,12 @@ table.data .doc { font-family: var(--font-mono); font-size: .82rem; color: var(-
 .input:focus, .select:focus { border-color: var(--blue); outline: none; box-shadow: 0 0 0 3px rgba(59,107,255,.12); }
 .field .err { color: var(--coral); font-size: .76rem; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
-.alert { padding: 11px 14px; border-radius: var(--r); font-size: .85rem; margin-bottom: 14px; }
-.alert.error { background: #fdecea; color: #b42318; border: 1px solid #f6c9c3; }
-.alert.info { background: #e7eeff; color: #2747a6; border: 1px solid #cdd9ff; }
+.alert { padding: 11px 14px 11px 40px; border-radius: var(--r); font-size: .85rem; margin-bottom: 14px;
+  background-repeat: no-repeat; background-position: 13px 12px; background-size: 16px; }
+.alert.error { background-color: #fdecea; color: #b42318; border: 1px solid #f6c9c3;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23b42318'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='m21.73%2018-8-14a2%202%200%200%200-3.48%200l-8%2014A2%202%200%200%200%204%2021h16a2%202%200%200%200%201.73-3'/%3E%3Cpath%20d='M12%209v4'/%3E%3Cpath%20d='M12%2017h.01'/%3E%3C/svg%3E"); }
+.alert.info { background-color: #e7eeff; color: #2747a6; border: 1px solid #cdd9ff;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%232747a6'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Ccircle%20cx='12'%20cy='12'%20r='10'/%3E%3Cpath%20d='M12%2016v-4'/%3E%3Cpath%20d='M12%208h.01'/%3E%3C/svg%3E"); }
 
 /* ===== Login ===== */
 .login-screen { min-height: 100vh; display: grid; place-items: center; position: relative; isolation: isolate;
@@ -151,6 +161,8 @@ table.data .doc { font-family: var(--font-mono); font-size: .82rem; color: var(-
 .login-card .btn-primary { width: 100%; justify-content: center; margin-top: 6px; }
 .login-hint { font-size: .74rem; color: var(--txt-3); margin-top: 16px; line-height: 1.6; }
 .login-hint code { font-family: var(--font-mono); color: var(--blue-3); }
+.login-hint-row { display: inline-flex; align-items: center; gap: 4px; }
+.login-hint-row svg { flex-shrink: 0; opacity: .8; }
 
 .section-cap { font-family: var(--font-mono); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase;
   color: var(--muted); margin: 0 0 10px; }
