@@ -125,11 +125,16 @@ Auditoría manual de MOD-001/002/005/006/007/026/028 (2026-06-30). Confirmados y
   `Comunicacion.convocatoriaId`, `EvaluacionPsicosocial.nivelRiesgo`, `DotacionEntrega.fechaDevolucion`/
   `devueltoById` para cerrar vínculos que solo existían en el catálogo v4 y no en el modelo de datos.
 
-Pendiente (no cubierto en esta fase, backlog de la auditoría completa de 6 grupos): Impacto (filtro por
-período), Mantenimiento↔Reservas (cruce de validación), Convocatorias/Seguimiento (cierre de ciclo de
-vida), notificaciones automáticas para RN-024-B/RN-026/RN-025, Comunicaciones↔Convocatorias (borrador
-automático), Inventarios/Dotación (conciliación y defensa en profundidad), SECOP (deduplicación),
-Escenario (editar/baja lógica).
+Backlog de la auditoría completa (6 grupos) — **cerrado en 3 lotes** (2026-07-01), cada uno verificado en
+vivo contra la base real antes de commitear:
+
+- **Lote 1**: Escenario (editar/baja lógica, `escenarios/[id]`), Impacto (filtro por período), SECOP
+  (deduplicación vía `RegistroSecop.contratoId @unique`).
+- **Lote 2+3**: Mantenimiento↔Reservas (bloqueo de reservas contra escenarios en mantenimiento activo,
+  `LogConflicto(tipo:"Mantenimiento")`), Inventarios/Dotación (`marcarDevuelta` registra
+  `fechaDevolucion`/`devueltoById`), Convocatorias (borrador automático de `Comunicacion` al abrir, cierre
+  automático de ciclo de vida al llenar cupos + `cerrarConvocatoria` manual), notificaciones automáticas
+  RN-024-B/RN-026 (Supervisor) y RN-025 (Administrador/Supervisor, 9 módulos con flujo de aprobación).
 
 ## Cómo se añade un módulo nuevo
 
