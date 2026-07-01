@@ -25,6 +25,8 @@ const schema = z.object({
   fechaInicio: z.preprocess((v) => (v === "" || v == null ? undefined : v), z.string().optional()),
   fechaFin: z.preprocess((v) => (v === "" || v == null ? undefined : v), z.string().optional()),
   supervisor: z.preprocess((v) => (v === "" ? undefined : v), z.string().max(120).optional()),
+  // municipio donde se ejecuta — alimenta el mapa de calor de inversión (opcional)
+  territorioId: z.preprocess((v) => (v === "" || v == null ? undefined : Number(v)), z.number().int().positive().optional()),
 });
 
 function readForm(fd: FormData) {
@@ -36,6 +38,7 @@ function readForm(fd: FormData) {
     fechaInicio: fd.get("fechaInicio"),
     fechaFin: fd.get("fechaFin"),
     supervisor: String(fd.get("supervisor") ?? ""),
+    territorioId: fd.get("territorioId"),
   };
 }
 
@@ -76,6 +79,7 @@ export async function crearContrato(_prev: FormState, fd: FormData): Promise<For
       numero: d.numero,
       objeto: d.objeto,
       terceroId: d.terceroId,
+      territorioId: d.territorioId ?? null,
       valorTotal: d.valorTotal,
       fechaInicio: ini,
       fechaFin: fin,
@@ -132,6 +136,7 @@ export async function editarContrato(_prev: FormState, fd: FormData): Promise<Fo
       numero: d.numero,
       objeto: d.objeto,
       terceroId: d.terceroId,
+      territorioId: d.territorioId ?? null,
       valorTotal: d.valorTotal,
       fechaInicio: ini,
       fechaFin: fin,

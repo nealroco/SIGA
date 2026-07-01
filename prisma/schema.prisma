@@ -242,6 +242,7 @@ model Territorio {
   beneficiarios Beneficiario[]
   lotes         Lote[]
   escenarios    Escenario[]
+  contratos     Contrato[]
 
   @@map("territorios")
 }
@@ -359,6 +360,7 @@ model Contrato {
   objeto         String          @db.Text
   terceroId      Int
   convocatoriaId Int? // MOD-008: contrato derivado de una convocatoria adjudicada
+  territorioId   Int? // municipio donde se ejecuta — alimenta el mapa de calor de inversión
   valorTotal     Float           @default(0)
   fechaInicio    DateTime?
   fechaFin       DateTime?
@@ -372,6 +374,7 @@ model Contrato {
   updatedAt      DateTime        @updatedAt
   tercero        Tercero         @relation(fields: [terceroId], references: [id])
   convocatoria   Convocatoria?   @relation(fields: [convocatoriaId], references: [id])
+  territorio     Territorio?     @relation(fields: [territorioId], references: [id])
   createdBy      Usuario?        @relation("registrante", fields: [createdById], references: [id])
   aprobadoBy     Usuario?        @relation("aprobador", fields: [aprobadoById], references: [id])
   informes       Informe[]

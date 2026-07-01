@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
 import { editarBeneficiario, darDeBajaBeneficiario } from "@/actions/beneficiarios";
 import BeneficiarioForm from "@/components/BeneficiarioForm";
+import MapaUbicacion from "@/components/maps/MapaUbicacion";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export default async function BeneficiarioDetallePage({ params }: { params: Prom
   const beneficiarioId = Number(id);
   if (!beneficiarioId) notFound();
 
-  const b = await prisma.beneficiario.findUnique({ where: { id: beneficiarioId } });
+  const b = await prisma.beneficiario.findUnique({ where: { id: beneficiarioId }, include: { territorio: true } });
   if (!b) notFound();
 
   const session = await auth();
@@ -32,6 +33,11 @@ export default async function BeneficiarioDetallePage({ params }: { params: Prom
           </p>
         </div>
         <Link href="/beneficiarios" className="btn">← Volver</Link>
+      </div>
+
+      <div style={{ marginTop: 18, maxWidth: 720 }}>
+        <p className="section-cap">Ubicación</p>
+        <MapaUbicacion lat={b.territorio?.lat} lng={b.territorio?.lng} label={b.territorio?.municipio ?? b.nombre} height={200} />
       </div>
 
       {!puedeEditar ? (

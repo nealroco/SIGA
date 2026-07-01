@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
 import { editarTerritorio, darDeBajaTerritorio } from "@/actions/territorios";
 import TerritorioForm from "@/components/TerritorioForm";
+import MapaUbicacion from "@/components/maps/MapaUbicacion";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,11 @@ export default async function TerritorioDetallePage({ params }: { params: Promis
           </p>
         </div>
         <Link href="/territorios" className="btn">← Volver</Link>
+      </div>
+
+      <div style={{ marginTop: 18, maxWidth: 720 }}>
+        <p className="section-cap">Ubicación</p>
+        <MapaUbicacion lat={t.lat} lng={t.lng} label={t.municipio} height={200} />
       </div>
 
       {!puedeEditar ? (

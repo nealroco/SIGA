@@ -2,6 +2,8 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
+import { escenariosGeo } from "@/lib/geo";
+import MapaPuntos from "@/components/maps/MapaPuntos";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +12,7 @@ export default async function EscenariosPage() {
   const puedeCrear = session ? await can(session.user.rol, "MOD-022", "crear") : false;
 
   const items = await prisma.escenario.findMany({ orderBy: { nombre: "asc" } });
+  const geo = await escenariosGeo();
 
   return (
     <div>
@@ -26,6 +29,18 @@ export default async function EscenariosPage() {
             <span className="badge L" title="Crear escenarios requiere escritura (E) en MOD-022">Sin registro</span>
           )}
         </div>
+      </div>
+
+      <div style={{ marginTop: 18 }}>
+        <p className="section-cap">Presencia de escenarios</p>
+        <MapaPuntos
+          puntos={geo.map((e) => ({
+            lat: e.lat,
+            lng: e.lng,
+            label: `${e.nombre}${e.tipo ? ` · ${e.tipo}` : ""}${e.capacidad ? ` · Capacidad ${e.capacidad}` : ""}`,
+          }))}
+          vacioTexto="Ningún escenario tiene coordenadas registradas (MOD-024 Georeferenciación)."
+        />
       </div>
 
       <div className="table-wrap" style={{ marginTop: 18 }}>

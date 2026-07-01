@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
 import { editarContrato, aprobarContrato, rechazarContrato, cerrarContrato } from "@/actions/contratos";
 import ContratoForm from "@/components/ContratoForm";
+import MapaUbicacion from "@/components/maps/MapaUbicacion";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export default async function ContratoDetallePage({ params }: { params: Promise<
 
   const c = await prisma.contrato.findUnique({
     where: { id: contratoId },
-    include: { tercero: true, createdBy: true, aprobadoBy: true },
+    include: { tercero: true, createdBy: true, aprobadoBy: true, territorio: true },
   });
   if (!c) notFound();
 
@@ -30,6 +31,7 @@ export default async function ContratoDetallePage({ params }: { params: Promise<
   const puedeAprobar = (await can(rol, "MOD-010", "aprobar")) && c.estado === "Registrado";
   const puedeCerrar = (await can(rol, "MOD-010", "aprobar")) && c.estado === "Aprobado";
   const terceros = await prisma.tercero.findMany({ where: { estado: "Activo" }, orderBy: { razonSocial: "asc" } });
+  const territorios = await prisma.territorio.findMany({ where: { estado: "Activo" }, orderBy: { municipio: "asc" } });
 
   return (
     <div>
@@ -50,6 +52,7 @@ export default async function ContratoDetallePage({ params }: { params: Promise<
           <div><b>Valor:</b> <span className="mono">{cop.format(c.valorTotal)}</span></div>
           <div><b>Tercero:</b> {c.tercero.razonSocial} ({c.tercero.tipo})</div>
           <div><b>Supervisor:</b> {c.supervisor ?? "—"}</div>
+          <div><b>Municipio:</b> {c.territorio ? `${c.territorio.municipio}${c.territorio.zona ? " — " + c.territorio.zona : ""}` : "—"}</div>
           <div><b>Inicio:</b> {fmt(c.fechaInicio)}</div>
           <div><b>Fin:</b> {fmt(c.fechaFin)}</div>
           <div><b>Registrado por:</b> {c.createdBy?.nombre ?? "—"}</div>
@@ -58,6 +61,11 @@ export default async function ContratoDetallePage({ params }: { params: Promise<
         {c.estado === "Rechazado" && c.motivoRechazo && (
           <div className="alert error" style={{ marginTop: 14 }}>Rechazado: {c.motivoRechazo}</div>
         )}
+      </div>
+
+      <div style={{ marginTop: 18, maxWidth: 760 }}>
+        <p className="section-cap">Ubicación</p>
+        <MapaUbicacion lat={c.territorio?.lat} lng={c.territorio?.lng} label={c.territorio?.municipio ?? c.numero} height={200} />
       </div>
 
       {/* RN-025: panel de aprobación (solo nivel A — Administrador) */}
@@ -101,6 +109,7 @@ export default async function ContratoDetallePage({ params }: { params: Promise<
           <ContratoForm
             action={editarContrato}
             terceros={terceros}
+            territorios={territorios}
             submitLabel="Guardar cambios"
             values={{
               id: c.id,
@@ -111,6 +120,7 @@ export default async function ContratoDetallePage({ params }: { params: Promise<
               fechaInicio: c.fechaInicio ? c.fechaInicio.toISOString() : null,
               fechaFin: c.fechaFin ? c.fechaFin.toISOString() : null,
               supervisor: c.supervisor,
+              territorioId: c.territorioId,
             }}
           />
         </div>

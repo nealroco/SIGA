@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
 import { editarLote, darDeBajaLote } from "@/actions/lotes";
 import LoteForm from "@/components/LoteForm";
+import MapaUbicacion from "@/components/maps/MapaUbicacion";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,11 @@ export default async function LoteDetallePage({ params }: { params: Promise<{ id
           </p>
         </div>
         <Link href="/lotes" className="btn">← Volver</Link>
+      </div>
+
+      <div style={{ marginTop: 18, maxWidth: 720 }}>
+        <p className="section-cap">Ubicación</p>
+        <MapaUbicacion lat={l.territorio?.lat} lng={l.territorio?.lng} label={l.territorio?.municipio ?? l.codigo} height={200} />
       </div>
 
       {!puedeEditar ? (

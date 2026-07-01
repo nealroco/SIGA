@@ -205,26 +205,24 @@ async function main() {
   console.log("Seed: contratos de muestra…");
   const fin = await prisma.usuario.findUnique({ where: { correo: "financiera@sigadeportes.co" } });
   const adminU = await prisma.usuario.findUnique({ where: { correo: "admin@sigadeportes.co" } });
-  const CONTRATOS: [string, string, string, number, string][] = [
-    ["CTO-2026-001", "Operación de escuelas de fútbol — Soacha", "8001234567", 120000000, "Registrado"],
-    ["CTO-2026-002", "Dotación deportiva para programas de atletismo", "9009876543", 85000000, "Aprobado"],
-    ["CTO-2026-003", "Servicios profesionales de seguimiento", "79123456", 36000000, "Registrado"],
+  const CONTRATOS: [string, string, string, number, string, string][] = [
+    ["CTO-2026-001", "Operación de escuelas de fútbol — Soacha", "8001234567", 120000000, "Registrado", "Soacha"],
+    ["CTO-2026-002", "Dotación deportiva para programas de atletismo", "9009876543", 85000000, "Aprobado", "Bogotá"],
+    ["CTO-2026-003", "Servicios profesionales de seguimiento", "79123456", 36000000, "Registrado", "Fusagasugá"],
   ];
-  for (const [numero, objeto, terceroDoc, valorTotal, estado] of CONTRATOS) {
-    await prisma.contrato.upsert({
-      where: { numero },
-      update: {},
-      create: {
-        numero,
-        objeto,
-        terceroId: terceroByDoc[terceroDoc],
-        valorTotal,
-        estado,
-        createdById: fin?.id ?? null,
-        aprobadoById: estado === "Aprobado" ? adminU?.id ?? null : null,
-        aprobadoEn: estado === "Aprobado" ? new Date() : null,
-      },
-    });
+  for (const [numero, objeto, terceroDoc, valorTotal, estado, municipio] of CONTRATOS) {
+    const data = {
+      numero,
+      objeto,
+      terceroId: terceroByDoc[terceroDoc],
+      territorioId: territorioByMunicipio[municipio] ?? null,
+      valorTotal,
+      estado,
+      createdById: fin?.id ?? null,
+      aprobadoById: estado === "Aprobado" ? adminU?.id ?? null : null,
+      aprobadoEn: estado === "Aprobado" ? new Date() : null,
+    };
+    await prisma.contrato.upsert({ where: { numero }, update: { territorioId: data.territorioId }, create: data });
   }
 
   console.log("Seed: convocatorias…");
@@ -374,10 +372,14 @@ async function main() {
   await prisma.lote.upsert({ where: { codigo: "LOT-001" }, update: {}, create: { codigo: "LOT-001", direccion: "Vía Soacha - Sibaté km 3", area: 4500, territorioId: territorioByMunicipio["Soacha"] ?? null } });
 
   console.log("Seed: escenarios, reservas y mantenimiento…");
+  const geoEsc1 = { lat: territorioByMunicipio["Soacha"] ? 4.5801 : null, lng: territorioByMunicipio["Soacha"] ? -74.2158 : null, territorioId: territorioByMunicipio["Soacha"] ?? null };
+  const geoEsc2 = { lat: territorioByMunicipio["Bogotá"] ? 4.6193 : null, lng: territorioByMunicipio["Bogotá"] ? -74.1786 : null, territorioId: territorioByMunicipio["Bogotá"] ?? null };
   let esc1 = await prisma.escenario.findFirst({ where: { nombre: "Coliseo Municipal" } });
-  if (!esc1) esc1 = await prisma.escenario.create({ data: { nombre: "Coliseo Municipal", tipo: "Coliseo", direccion: "Calle 10 # 5-20", capacidad: 800 } });
+  if (!esc1) esc1 = await prisma.escenario.create({ data: { nombre: "Coliseo Municipal", tipo: "Coliseo", direccion: "Calle 10 # 5-20", capacidad: 800, ...geoEsc1 } });
+  else await prisma.escenario.update({ where: { id: esc1.id }, data: geoEsc1 });
   const esc2 = await prisma.escenario.findFirst({ where: { nombre: "Cancha sintética La Esperanza" } });
-  if (!esc2) await prisma.escenario.create({ data: { nombre: "Cancha sintética La Esperanza", tipo: "Cancha", direccion: "Barrio La Esperanza", capacidad: 50 } });
+  if (!esc2) await prisma.escenario.create({ data: { nombre: "Cancha sintética La Esperanza", tipo: "Cancha", direccion: "Barrio La Esperanza", capacidad: 50, ...geoEsc2 } });
+  else await prisma.escenario.update({ where: { id: esc2.id }, data: geoEsc2 });
 
   const resEx = await prisma.reservaEscenario.findFirst({ where: { escenarioId: esc1.id } });
   if (!resEx) {

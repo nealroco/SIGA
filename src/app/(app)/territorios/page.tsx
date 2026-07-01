@@ -3,6 +3,8 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
 import type { Prisma } from "@prisma/client";
+import { beneficiariosPorTerritorio, inversionPorTerritorio, escenariosGeo, presenciaPorProgramaYTerritorio } from "@/lib/geo";
+import PanelGeografico from "@/components/maps/PanelGeografico";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +27,12 @@ export default async function TerritoriosPage({
   if (estado === "Activo" || estado === "Inactivo") where.estado = estado;
 
   const items = await prisma.territorio.findMany({ where, orderBy: { createdAt: "desc" } });
+  const [poblacion, inversion, escenarios, presenciaPrograma] = await Promise.all([
+    beneficiariosPorTerritorio(),
+    inversionPorTerritorio(),
+    escenariosGeo(),
+    presenciaPorProgramaYTerritorio(),
+  ]);
 
   return (
     <div>
@@ -40,6 +48,19 @@ export default async function TerritoriosPage({
         )}
       </div>
 
+      <div style={{ marginTop: 18 }}>
+        <p className="section-cap">Presencia geográfica</p>
+        <div className="card" style={{ padding: 18 }}>
+          <PanelGeografico
+            poblacion={poblacion}
+            inversion={inversion}
+            escenarios={escenarios}
+            presenciaPrograma={presenciaPrograma}
+          />
+        </div>
+      </div>
+
+      <p className="section-cap" style={{ marginTop: 24 }}>Listado de territorios</p>
       <form className="toolbar" method="get">
         <input
           className="input grow"

@@ -13,19 +13,23 @@ type Values = {
   fechaInicio?: string | null;
   fechaFin?: string | null;
   supervisor?: string | null;
+  territorioId?: number | null;
 };
 
 type Tercero = { id: number; razonSocial: string; tipo: string };
+type Territorio = { id: number; municipio: string; zona: string | null };
 type Action = (prev: FormState, fd: FormData) => Promise<FormState>;
 
 export default function ContratoForm({
   action,
   terceros,
+  territorios = [],
   values = {},
   submitLabel,
 }: {
   action: Action;
   terceros: Tercero[];
+  territorios?: Territorio[];
   values?: Values;
   submitLabel: string;
 }) {
@@ -71,6 +75,15 @@ export default function ContratoForm({
         <div className="field">
           <label htmlFor="supervisor">Supervisor</label>
           <input id="supervisor" name="supervisor" className="input" defaultValue={values.supervisor ?? ""} />
+        </div>
+        <div className="field">
+          <label htmlFor="territorioId">Municipio de ejecución</label>
+          <select id="territorioId" name="territorioId" className="select" defaultValue={values.territorioId ?? ""}>
+            <option value="">—</option>
+            {territorios.map((t) => (
+              <option key={t.id} value={t.id}>{t.municipio}{t.zona ? ` — ${t.zona}` : ""}</option>
+            ))}
+          </select>
         </div>
         <div className="field">
           <label htmlFor="fechaInicio">Fecha inicio</label>

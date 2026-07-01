@@ -11,6 +11,7 @@ export default async function NuevoContratoPage() {
   const session = await auth();
   const puedeCrear = session ? await can(session.user.rol, "MOD-010", "crear") : false;
   const terceros = await prisma.tercero.findMany({ where: { estado: "Activo" }, orderBy: { razonSocial: "asc" } });
+  const territorios = await prisma.territorio.findMany({ where: { estado: "Activo" }, orderBy: { municipio: "asc" } });
 
   return (
     <div>
@@ -24,7 +25,7 @@ export default async function NuevoContratoPage() {
         </div>
       ) : (
         <div style={{ marginTop: 18 }}>
-          <ContratoForm action={crearContrato} terceros={terceros} submitLabel="Registrar contrato" />
+          <ContratoForm action={crearContrato} terceros={terceros} territorios={territorios} submitLabel="Registrar contrato" />
         </div>
       )}
     </div>
