@@ -1,11 +1,15 @@
 "use client";
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } from "recharts";
-
-// Mismos 5 tonos ya usados en el resto de la UI (var(--blue), var(--coral) + verde/ámbar/azul-info de
-// .badge/.pill en globals.css) — el número de series de un cruce de 2 dimensiones es siempre pequeño
-// (Sí/No, 3 tipos de afiliación, etc.), así que no hace falta la paleta de 9 tonos del donut.
-const COLORES = ["#3b6bff", "#ff5a3c", "#157347", "#9a6a00", "#2747a6"];
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
+import {
+  PALETA_CATEGORICA,
+  TICK_STYLE,
+  GRID_STROKE,
+  TOOLTIP_CONTENT_STYLE,
+  TOOLTIP_LABEL_STYLE,
+  TOOLTIP_ITEM_STYLE,
+  TOOLTIP_CURSOR_STYLE,
+} from "./chartTheme";
 
 export default function BarChartAgrupado({
   data,
@@ -20,19 +24,43 @@ export default function BarChartAgrupado({
     return <p className="empty">Sin datos</p>;
   }
   return (
-    <div style={{ width: "100%", height }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 8, right: 12, bottom: 4, left: 4 }}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e6f2" />
-          <XAxis dataKey="categoria" tick={{ fontSize: 11, fill: "#858dae" }} axisLine={false} tickLine={false} />
-          <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#858dae" }} axisLine={false} tickLine={false} width={30} />
-          <Tooltip />
-          <Legend wrapperStyle={{ fontSize: 12 }} />
-          {series.map((s, i) => (
-            <Bar key={s} dataKey={s} fill={COLORES[i % COLORES.length]} radius={[4, 4, 0, 0]} />
-          ))}
-        </BarChart>
-      </ResponsiveContainer>
+    <div>
+      <div style={{ width: "100%", height }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 8, right: 12, bottom: 4, left: 4 }} barGap={4} barCategoryGap="28%">
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID_STROKE} />
+            <XAxis dataKey="categoria" tick={TICK_STYLE} axisLine={false} tickLine={false} />
+            <YAxis allowDecimals={false} tick={TICK_STYLE} axisLine={false} tickLine={false} width={30} />
+            <Tooltip
+              contentStyle={TOOLTIP_CONTENT_STYLE}
+              labelStyle={TOOLTIP_LABEL_STYLE}
+              itemStyle={TOOLTIP_ITEM_STYLE}
+              cursor={TOOLTIP_CURSOR_STYLE}
+            />
+            {series.map((s, i) => (
+              <Bar key={s} dataKey={s} fill={PALETA_CATEGORICA[i % PALETA_CATEGORICA.length]} radius={[4, 4, 0, 0]} maxBarSize={28} />
+            ))}
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
+        {series.map((s, i) => (
+          <span
+            key={s}
+            className="pill"
+            style={{
+              marginTop: 0,
+              background: `${PALETA_CATEGORICA[i % PALETA_CATEGORICA.length]}1f`,
+              color: PALETA_CATEGORICA[i % PALETA_CATEGORICA.length],
+            }}
+          >
+            <span
+              style={{ width: 7, height: 7, borderRadius: 2, background: PALETA_CATEGORICA[i % PALETA_CATEGORICA.length] }}
+            />
+            {s}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
