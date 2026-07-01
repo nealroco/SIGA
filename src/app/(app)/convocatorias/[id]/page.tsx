@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
-import { proponerBeneficiario, aprobarSeleccion, rechazarSeleccion } from "@/actions/convocatorias";
+import { proponerBeneficiario, aprobarSeleccion, rechazarSeleccion, cerrarConvocatoria } from "@/actions/convocatorias";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +28,7 @@ export default async function ConvocatoriaDetalle({ params }: { params: Promise<
   const rol = session!.user.rol;
   const puedeSeleccionar = await can(rol, "MOD-008", "crear"); // Supervisor (E)
   const puedeAprobar = await can(rol, "MOD-008", "aprobar"); // Administrador (A)
+  const puedeCerrar = puedeAprobar && c.estado !== "Cerrada";
 
   const yaSeleccionados = new Set(c.selecciones.map((s) => s.beneficiarioId));
   const disponibles = puedeSeleccionar
@@ -56,6 +57,17 @@ export default async function ConvocatoriaDetalle({ params }: { params: Promise<
           <div><b>Creada por:</b> {c.createdBy?.nombre ?? "—"}</div>
         </div>
       </div>
+
+      {puedeCerrar && (
+        <form action={cerrarConvocatoria} className="card" style={{ padding: 18, marginTop: 18, maxWidth: 820, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <input type="hidden" name="id" value={c.id} />
+          <div>
+            <b>Cerrar convocatoria</b>
+            <div className="page-sub">Cierre manual del ciclo de vida de la convocatoria (nivel Aprobación).</div>
+          </div>
+          <button className="btn" type="submit">Cerrar</button>
+        </form>
+      )}
 
       <div style={{ marginTop: 22, maxWidth: 820 }}>
         <p className="section-cap">Selección de beneficiarios (RN-027)</p>

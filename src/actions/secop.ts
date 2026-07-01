@@ -60,6 +60,17 @@ export async function crearRegistroSecop(_prev: FormState, fd: FormData): Promis
     },
   });
   await writeAudit({ usuarioId: Number(session.user.id), accion: "crear", modulo: MOD, registroId: creado.id, valorNuevo: { contratoId: d.contratoId, procesoSecop: d.procesoSecop, estadoSync: "Registrado" } });
+  // RN-025: doble control — notificar al aprobador que hay un registro SECOP pendiente de aprobación
+  await prisma.notificacion.create({
+    data: {
+      tipoEvento: "RN-025",
+      canal: "Sistema",
+      destinatario: "Administrador",
+      mensaje: `El registro SECOP #${creado.id} del contrato #${d.contratoId} (proceso SECOP ${d.procesoSecop}) quedó pendiente de aprobación.`,
+      estadoEnvio: "Pendiente",
+      createdById: Number(session.user.id),
+    },
+  });
   revalidatePath("/secop");
   redirect("/secop");
 }

@@ -90,6 +90,18 @@ export async function crearPersonal(_prev: FormState, fd: FormData): Promise<For
     valorNuevo: data,
   });
 
+  // RN-025: doble control — notificar al aprobador que hay una hoja de vida pendiente de aprobación
+  await prisma.notificacion.create({
+    data: {
+      tipoEvento: "RN-025",
+      canal: "Sistema",
+      destinatario: "Supervisor",
+      mensaje: `La hoja de vida de ${d.nombre} (documento ${d.documento}) quedó pendiente de aprobación.`,
+      estadoEnvio: "Pendiente",
+      createdById: Number(session.user.id),
+    },
+  });
+
   revalidatePath("/personal");
   redirect("/personal");
 }

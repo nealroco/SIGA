@@ -72,6 +72,17 @@ export async function crearEvaluacion(_prev: FormState, fd: FormData): Promise<F
     },
   });
   await writeAudit({ usuarioId: Number(session.user.id), accion: "crear", modulo: MOD, registroId: creada.id, valorNuevo: { terceroId: d.terceroId, convocatoriaId: d.convocatoriaId ?? null, puntaje: d.puntaje ?? null, estado: "Registrada" } });
+  // RN-025: doble control — notificar al aprobador que hay una evaluación ESAL pendiente de aprobación
+  await prisma.notificacion.create({
+    data: {
+      tipoEvento: "RN-025",
+      canal: "Sistema",
+      destinatario: "Supervisor",
+      mensaje: `La evaluación ESAL #${creada.id} del tercero #${d.terceroId} (${tercero.razonSocial}) quedó pendiente de aprobación.`,
+      estadoEnvio: "Pendiente",
+      createdById: Number(session.user.id),
+    },
+  });
   revalidatePath("/evaluacion-esal");
   redirect("/evaluacion-esal");
 }

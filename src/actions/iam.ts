@@ -87,6 +87,17 @@ export async function registrarAccesoEmergencia(_prev: FormState, fd: FormData):
       motivo: d.motivo,
     },
   });
+  const activadoPor = session.user.name ?? session.user.rol;
+  await prisma.notificacion.create({
+    data: {
+      tipoEvento: "RN-026",
+      canal: "Sistema",
+      destinatario: "Supervisor",
+      estadoEnvio: "Pendiente",
+      createdById: Number(session.user.id),
+      mensaje: `Se activó un acceso de emergencia (break-glass) por ${activadoPor} (${session.user.rol}). Motivo: ${d.motivo}`,
+    },
+  });
   await writeAudit({
     usuarioId: Number(session.user.id),
     accion: "acceso_emergencia_iam",

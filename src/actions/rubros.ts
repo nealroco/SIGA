@@ -77,6 +77,17 @@ export async function crearRubro(_prev: FormState, fd: FormData): Promise<FormSt
     data: { codigo: d.codigo, nombre: d.nombre, fuenteId: d.fuenteId, valorAsignado: d.valorAsignado, vigencia: d.vigencia, estado: "Registrado", createdById: Number(session.user.id) },
   });
   await writeAudit({ usuarioId: Number(session.user.id), accion: "crear_rubro", modulo: MOD, registroId: creado.id, valorNuevo: { codigo: d.codigo, valorAsignado: d.valorAsignado, estado: "Registrado" } });
+  // RN-025: doble control — notificar al aprobador que hay un rubro pendiente de aprobación
+  await prisma.notificacion.create({
+    data: {
+      tipoEvento: "RN-025",
+      canal: "Sistema",
+      destinatario: "Administrador",
+      mensaje: `El rubro ${d.codigo} quedó pendiente de aprobación.`,
+      estadoEnvio: "Pendiente",
+      createdById: Number(session.user.id),
+    },
+  });
   revalidatePath("/rubros");
   redirect("/rubros");
 }

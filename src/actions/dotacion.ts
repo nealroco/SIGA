@@ -103,7 +103,14 @@ export async function marcarDevuelta(fd: FormData): Promise<void> {
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.dotacionEntrega.update({ where: { id }, data: { estado: "Devuelta" } });
+    await tx.dotacionEntrega.update({
+      where: { id },
+      data: {
+        estado: "Devuelta",
+        fechaDevolucion: new Date(),
+        devueltoById: Number(session.user.id),
+      },
+    });
     await tx.item.update({
       where: { id: entrega.itemId },
       data: { cantidad: { increment: entrega.cantidad } },

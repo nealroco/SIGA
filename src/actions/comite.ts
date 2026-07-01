@@ -63,6 +63,17 @@ export async function crearActa(_prev: FormState, fd: FormData): Promise<FormSta
     },
   });
   await writeAudit({ usuarioId: Number(session.user.id), accion: "crear", modulo: MOD, registroId: creada.id, valorNuevo: { tema: d.tema, estado: "Registrada" } });
+  // RN-025: doble control — notificar al aprobador que hay un acta pendiente de aprobación
+  await prisma.notificacion.create({
+    data: {
+      tipoEvento: "RN-025",
+      canal: "Sistema",
+      destinatario: "Administrador",
+      mensaje: `El acta de comité #${creada.id} sobre "${d.tema}" quedó pendiente de aprobación.`,
+      estadoEnvio: "Pendiente",
+      createdById: Number(session.user.id),
+    },
+  });
   revalidatePath("/comite");
   redirect("/comite");
 }

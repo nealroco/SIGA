@@ -68,6 +68,17 @@ export async function crearFuente(_prev: FormState, fd: FormData): Promise<FormS
     },
   });
   await writeAudit({ usuarioId: Number(session.user.id), accion: "crear", modulo: MOD, registroId: creada.id, valorNuevo: { codigo: d.codigo, valorDisponible: d.valorDisponible, estado: "Registrada" } });
+  // RN-025: doble control — notificar al aprobador que hay una fuente de financiación pendiente de aprobación
+  await prisma.notificacion.create({
+    data: {
+      tipoEvento: "RN-025",
+      canal: "Sistema",
+      destinatario: "Administrador",
+      mensaje: `La fuente de financiación ${d.codigo} quedó pendiente de aprobación.`,
+      estadoEnvio: "Pendiente",
+      createdById: Number(session.user.id),
+    },
+  });
   revalidatePath("/fuentes");
   redirect("/fuentes");
 }

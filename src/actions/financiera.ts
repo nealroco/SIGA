@@ -85,6 +85,17 @@ export async function crearCuenta(_prev: FormState, fd: FormData): Promise<FormS
     },
   });
   await writeAudit({ usuarioId: Number(session.user.id), accion: "crear", modulo: MOD, registroId: creada.id, valorNuevo: { contratoId: d.contratoId, rubroId: d.rubroId, periodo: d.periodo, valorCobrado: d.valorCobrado, estado: "Registrada" } });
+  // RN-025: doble control — notificar al aprobador que hay una cuenta de cobro pendiente de aprobación
+  await prisma.notificacion.create({
+    data: {
+      tipoEvento: "RN-025",
+      canal: "Sistema",
+      destinatario: "Administrador",
+      mensaje: `La cuenta de cobro del contrato #${d.contratoId} (período ${d.periodo}) quedó pendiente de aprobación.`,
+      estadoEnvio: "Pendiente",
+      createdById: Number(session.user.id),
+    },
+  });
   revalidatePath("/financiera");
   redirect("/financiera");
 }

@@ -102,6 +102,17 @@ export async function crearContrato(_prev: FormState, fd: FormData): Promise<For
     data: EXPEDIENTE.map(([tipoDocumento, obligatorio]) => ({ contratoId: creado.id, tipoDocumento, obligatorio })),
   });
   await writeAudit({ usuarioId: Number(session.user.id), accion: "crear", modulo: MOD, registroId: creado.id, valorNuevo: { numero: d.numero, valorTotal: d.valorTotal, estado: "Registrado" } });
+  // RN-025: doble control — notificar al aprobador que hay un contrato pendiente de aprobación
+  await prisma.notificacion.create({
+    data: {
+      tipoEvento: "RN-025",
+      canal: "Sistema",
+      destinatario: "Administrador",
+      mensaje: `El contrato #${d.numero} quedó pendiente de aprobación.`,
+      estadoEnvio: "Pendiente",
+      createdById: Number(session.user.id),
+    },
+  });
   revalidatePath("/contratos");
   redirect("/contratos");
 }

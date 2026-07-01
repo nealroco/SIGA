@@ -81,6 +81,17 @@ export async function crearPoliza(_prev: FormState, fd: FormData): Promise<FormS
     },
   });
   await writeAudit({ usuarioId: Number(session.user.id), accion: "crear", modulo: MOD, registroId: creada.id, valorNuevo: { contratoId: d.contratoId, valor: d.valor, estado: "Registrada" } });
+  // RN-025: doble control — notificar al aprobador que hay una póliza pendiente de aprobación
+  await prisma.notificacion.create({
+    data: {
+      tipoEvento: "RN-025",
+      canal: "Sistema",
+      destinatario: "Administrador",
+      mensaje: `La póliza del contrato #${d.contratoId} quedó pendiente de aprobación.`,
+      estadoEnvio: "Pendiente",
+      createdById: Number(session.user.id),
+    },
+  });
   revalidatePath("/polizas");
   redirect("/polizas");
 }

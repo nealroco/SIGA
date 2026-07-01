@@ -66,6 +66,20 @@ export async function crearConvocatoria(_prev: FormState, fd: FormData): Promise
       createdById: Number(session.user.id),
     },
   });
+  // Comunicaciones y Convocatorias: al crear la convocatoria se deja listo un borrador
+  // de comunicación interna anunciando la apertura, pendiente de redacción final.
+  await prisma.comunicacion.create({
+    data: {
+      tipo: "Interna",
+      canal: "Correo",
+      asunto: `Apertura de convocatoria ${d.nombre}`,
+      contenido: `Se abre la convocatoria "${d.nombre}" con ${d.cupos} cupo(s) disponibles. Este es un borrador automático, pendiente de redacción final antes de enviar.`,
+      publico: "Coordinadores territoriales",
+      convocatoriaId: creada.id,
+      estado: "Borrador",
+      createdById: Number(session.user.id),
+    },
+  });
   await writeAudit({ usuarioId: Number(session.user.id), accion: "crear", modulo: MOD, registroId: creada.id, valorNuevo: { nombre: d.nombre, cupos: d.cupos } });
   revalidatePath("/convocatorias");
   redirect("/convocatorias");
@@ -143,6 +157,14 @@ export async function aprobarSeleccion(fd: FormData): Promise<void> {
 
   await prisma.seleccionBeneficiario.update({ where: { id: seleccionId }, data: { estado: "Aprobado", aprobadoById: Number(session.user.id) } });
   await writeAudit({ usuarioId: Number(session.user.id), accion: "aprobar", modulo: MOD, registroId: sel.convocatoriaId, valorNuevo: { seleccionId, estado: "Aprobado" } });
+
+  // Convocatorias y Seguimiento: cierre automático del ciclo de vida cuando se completan los cupos.
+  const aprobadosAhora = await prisma.seleccionBeneficiario.count({ where: { convocatoriaId: sel.convocatoriaId, estado: "Aprobado" } });
+  if (sel.convocatoria.cupos > 0 && aprobadosAhora >= sel.convocatoria.cupos) {
+    await prisma.convocatoria.update({ where: { id: sel.convocatoriaId }, data: { estado: "Cerrada" } });
+    await writeAudit({ usuarioId: Number(session.user.id), accion: "cierre_automatico_cupos", modulo: MOD, registroId: sel.convocatoriaId, valorNuevo: { estado: "Cerrada" } });
+  }
+
   revalidatePath(`/convocatorias/${sel.convocatoriaId}`);
   redirect(`/convocatorias/${sel.convocatoriaId}`);
 }
@@ -161,4 +183,23 @@ export async function rechazarSeleccion(fd: FormData): Promise<void> {
   await writeAudit({ usuarioId: Number(session.user.id), accion: "rechazar", modulo: MOD, registroId: sel.convocatoriaId, valorNuevo: { seleccionId, estado: "Rechazado" } });
   revalidatePath(`/convocatorias/${sel.convocatoriaId}`);
   redirect(`/convocatorias/${sel.convocatoriaId}`);
+}
+
+// Convocatorias y Seguimiento: cierre de ciclo de vida — decisión de nivel Aprobación (A)
+export async function cerrarConvocatoria(fd: FormData): Promise<void> {
+  const session = await auth();
+  if (!session?.user) throw new Error("Sesión expirada.");
+  if (!(await can(session.user.rol, MOD, "aprobar")))
+    throw new Error(`No autorizado: cerrar convocatorias requiere nivel Aprobación (A) en MOD-008.`);
+
+  const id = Number(fd.get("id"));
+  const c = await prisma.convocatoria.findUnique({ where: { id } });
+  if (!c || c.estado === "Cerrada") {
+    redirect(`/convocatorias/${id}`);
+  }
+
+  await prisma.convocatoria.update({ where: { id }, data: { estado: "Cerrada" } });
+  await writeAudit({ usuarioId: Number(session.user.id), accion: "cerrar", modulo: MOD, registroId: id, valorAnterior: { estado: c!.estado }, valorNuevo: { estado: "Cerrada" } });
+  revalidatePath("/convocatorias");
+  redirect(`/convocatorias/${id}`);
 }

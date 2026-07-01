@@ -168,6 +168,41 @@ export async function crearReserva(_prev: FormState, fd: FormData): Promise<Form
   if (isNaN(ini.getTime()) || isNaN(fin.getTime()) || fin <= ini)
     return { fieldErrors: { fechaFin: "RN-024: fecha_fin debe ser posterior a fecha_inicio" } };
 
+  // Cruce con Mantenimiento: un escenario con mantenimiento "En curso" que se solape
+  // con el rango solicitado bloquea la reserva, tanto en flujo normal como de emergencia.
+  const mantenimientosEnCurso = await prisma.mantenimiento.findMany({
+    where: { escenarioId: d.escenarioId, estado: "En curso" },
+  });
+
+  for (const m of mantenimientosEnCurso) {
+    // fechaInicio/fechaFin son nullable: si faltan, el mantenimiento sigue bloqueando
+    // mientras esté "En curso" (no se excluye silenciosamente).
+    const mIni = m.fechaInicio ? m.fechaInicio.getTime() : -Infinity;
+    const mFin = m.fechaFin ? m.fechaFin.getTime() : Infinity;
+    if (ini.getTime() < mFin && mIni < fin.getTime()) {
+      await prisma.logConflicto.create({
+        data: {
+          escenarioId: d.escenarioId,
+          tipo: "Mantenimiento",
+          motivo: "Rechazo automático: escenario en mantenimiento activo (RN-024)",
+          usuarioId: Number(session.user.id),
+          fechaIntentoInicio: ini,
+          fechaIntentoFin: fin,
+        },
+      });
+      return {
+        error:
+          "RN-024: el escenario está en mantenimiento activo (" +
+          (m.descripcion ?? "sin descripción") +
+          ") desde " +
+          (m.fechaInicio ? m.fechaInicio.toLocaleString() : "fecha sin definir") +
+          " hasta " +
+          (m.fechaFin ? m.fechaFin.toLocaleString() : "fecha sin definir") +
+          ".",
+      };
+    }
+  }
+
   if (d.esEmergencia) {
     // RN-024-B: el override de emergencia SOLO lo puede crear el rol Administrador (comprobación literal, no por nivel de permiso)
     if (session.user.rol !== "Administrador")
@@ -194,6 +229,24 @@ export async function crearReserva(_prev: FormState, fd: FormData): Promise<Form
         usuarioId: Number(session.user.id),
         fechaIntentoInicio: ini,
         fechaIntentoFin: fin,
+      },
+    });
+    // RN-024-B: notificación automática al Supervisor por cada override de emergencia.
+    await prisma.notificacion.create({
+      data: {
+        tipoEvento: "RN-024-B",
+        canal: "Sistema",
+        destinatario: "Supervisor",
+        estadoEnvio: "Pendiente",
+        createdById: Number(session.user.id),
+        mensaje:
+          "Override de emergencia RN-024-B: reserva #" +
+          creada.id +
+          " creada para el escenario " +
+          d.escenarioId +
+          ". Motivo: " +
+          (d.motivoEmergencia || "sin motivo especificado") +
+          ".",
       },
     });
     await writeAudit({ usuarioId: Number(session.user.id), accion: "override_emergencia", modulo: MOD, registroId: creada.id, valorNuevo: { escenarioId: d.escenarioId, fechaInicio: ini, fechaFin: fin, motivoEmergencia: d.motivoEmergencia } });

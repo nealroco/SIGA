@@ -535,7 +535,10 @@ async function main() {
   const ben1 = await prisma.beneficiario.findFirst();
   if (ben1) {
     const dotEx = await prisma.dotacionEntrega.findFirst({ where: { beneficiarioId: ben1.id, itemId: item1.id } });
-    if (!dotEx) await prisma.dotacionEntrega.create({ data: { beneficiarioId: ben1.id, itemId: item1.id, cantidad: 1, createdById: infraU?.id ?? null } });
+    if (!dotEx) {
+      await prisma.dotacionEntrega.create({ data: { beneficiarioId: ben1.id, itemId: item1.id, cantidad: 1, createdById: infraU?.id ?? null } });
+      await prisma.item.update({ where: { id: item1.id }, data: { cantidad: { decrement: 1 } } });
+    }
   }
   await prisma.lote.upsert({ where: { codigo: "LOT-001" }, update: {}, create: { codigo: "LOT-001", direccion: "Vía Soacha - Sibaté km 3", area: 4500, territorioId: territorioByMunicipio["Soacha"] ?? null } });
 
