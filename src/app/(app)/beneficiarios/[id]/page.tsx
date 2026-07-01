@@ -14,7 +14,10 @@ export default async function BeneficiarioDetallePage({ params }: { params: Prom
   const beneficiarioId = Number(id);
   if (!beneficiarioId) notFound();
 
-  const b = await prisma.beneficiario.findUnique({ where: { id: beneficiarioId }, include: { territorio: true } });
+  const b = await prisma.beneficiario.findUnique({
+    where: { id: beneficiarioId },
+    include: { territorio: true, acudiente: true, contactoEmergencia: true },
+  });
   if (!b) notFound();
 
   const session = await auth();
@@ -58,7 +61,98 @@ export default async function BeneficiarioDetallePage({ params }: { params: Prom
               sexo: b.sexo,
               programa: b.programa,
               territorioId: b.territorioId,
+
+              primerNombre: b.primerNombre,
+              segundoNombre: b.segundoNombre,
+              primerApellido: b.primerApellido,
+              segundoApellido: b.segundoApellido,
+              genero: b.genero,
+              tipoDocumento: b.tipoDocumento,
+              fechaExpedicionDoc: b.fechaExpedicionDoc ? b.fechaExpedicionDoc.toISOString() : null,
+              lugarExpedicionDoc: b.lugarExpedicionDoc,
+              lugarNacimiento: b.lugarNacimiento,
+              fechaNacimiento: b.fechaNacimiento ? b.fechaNacimiento.toISOString() : null,
+
+              estaturaCm: b.estaturaCm,
+              pesoKg: b.pesoKg,
+              tipoSangre: b.tipoSangre,
+              talla: b.talla,
+
+              direccionDomicilio: b.direccionDomicilio,
+              ubicacionDomicilio: b.ubicacionDomicilio,
+              estrato: b.estrato,
+              veredaCorregimiento: b.veredaCorregimiento,
+              nombreSede: b.nombreSede,
+              jornada: b.jornada,
+
+              grado: b.grado,
+              descolarizado: b.descolarizado,
+              institucionEducativa: b.institucionEducativa,
+              secretariaEducacionCert: b.secretariaEducacionCert,
+              nombreEstablecimiento: b.nombreEstablecimiento,
+              nombreSedeEducativa: b.nombreSedeEducativa,
+              codigoDaneSede: b.codigoDaneSede,
+              codigoDaneMunicipio: b.codigoDaneMunicipio,
+
+              afiliacionSalud: b.afiliacionSalud,
+              otroTipoAfiliacion: b.otroTipoAfiliacion,
+              eps: b.eps,
+              consumeMedicamento: b.consumeMedicamento,
+              cualMedicamento: b.cualMedicamento,
+              correoElectronico: b.correoElectronico,
+              tieneConvulsiones: b.tieneConvulsiones,
+              tieneCardiovascular: b.tieneCardiovascular,
+              tieneRespiratoria: b.tieneRespiratoria,
+              tieneAlergias: b.tieneAlergias,
+              tieneEpilepsia: b.tieneEpilepsia,
+              tieneOtraEnfermedad: b.tieneOtraEnfermedad,
+              cualOtraEnfermedad: b.cualOtraEnfermedad,
+
+              diagnosticadoDiscapacidad: b.diagnosticadoDiscapacidad,
+              tieneRegistroLocalizacion: b.tieneRegistroLocalizacion,
+              discapacidadFisicoMotor: b.discapacidadFisicoMotor,
+              discapacidadVisual: b.discapacidadVisual,
+              discapacidadAuditiva: b.discapacidadAuditiva,
+              discapacidadIntelectual: b.discapacidadIntelectual,
+              discapacidadMultiple: b.discapacidadMultiple,
+              cualDiscapacidad: b.cualDiscapacidad,
+              recomendacionMedica: b.recomendacionMedica,
+
+              tipoPoblacion: b.tipoPoblacion,
+              cabildoResguardo: b.cabildoResguardo,
+              otroTipoCondicionEspecial: b.otroTipoCondicionEspecial,
+              cualOtraCondicion: b.cualOtraCondicion,
+              victimaConflictoArmado: b.victimaConflictoArmado,
+              registroUnicoVictimas: b.registroUnicoVictimas,
+              numeroRuv: b.numeroRuv,
+
               acudiente: b.acudiente,
+              contactoEmergencia: b.contactoEmergencia,
+
+              docRegistroCivilOTi: b.docRegistroCivilOTi,
+              docCertificadoEpsAdres: b.docCertificadoEpsAdres,
+              docCedulaAcudiente: b.docCedulaAcudiente,
+              docConsentimientoAsentimiento: b.docConsentimientoAsentimiento,
+              docFichaInscripcion: b.docFichaInscripcion,
+              docAceptoPoliticaDatos: b.docAceptoPoliticaDatos,
+
+              cuentaConAlimentacion: b.cuentaConAlimentacion,
+              tipoComplementoAlimentario: b.tipoComplementoAlimentario,
+              modalidadAlimentacion: b.modalidadAlimentacion,
+              requiereAlimentacionCentro: b.requiereAlimentacionCentro,
+
+              medioTransporte: b.medioTransporte,
+              tiempoRecorrido: b.tiempoRecorrido,
+              requiereTransporteCentro: b.requiereTransporteCentro,
+              requerimientoTransporte: b.requerimientoTransporte,
+
+              nombreFormador: b.nombreFormador,
+              ccFormador: b.ccFormador,
+              tipoPoblacionFormador: b.tipoPoblacionFormador,
+              grupoCentroInteres: b.grupoCentroInteres,
+              observacionesRegistro: b.observacionesRegistro,
+              fechaIngreso: b.fechaIngreso ? b.fechaIngreso.toISOString() : null,
+              departamentoBeneficiario: b.departamentoBeneficiario,
             }}
           />
         </div>

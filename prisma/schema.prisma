@@ -136,17 +136,153 @@ model Beneficiario {
   sexo                      String? // M | F | Otro
   programa                  String?
   territorioId              Int?
-  acudiente                 String?
   estado                    String                  @default("Activo") // Activo | Inactivo (RN-002: baja lógica, nunca DELETE)
   createdAt                 DateTime                @default(now())
   updatedAt                 DateTime                @updatedAt
+
+  // Identidad (ficha de inscripción)
+  primerNombre       String?
+  segundoNombre       String?
+  primerApellido      String?
+  segundoApellido     String?
+  genero              String? // ficha: Femenino | Masculino | Otro — distinto de `sexo` (dominio legado, no se fusiona)
+  tipoDocumento        String? // TI | CC | RC | CE | PEP
+  fechaExpedicionDoc   DateTime?
+  lugarExpedicionDoc   String?
+  lugarNacimiento      String?
+  fechaNacimiento      DateTime?
+
+  // Datos físicos
+  estaturaCm    Int?
+  pesoKg        Float?
+  tipoSangre    String?
+  talla         String?
+
+  // Ubicación / domicilio (del beneficiario, distinto de Territorio)
+  direccionDomicilio    String? @db.Text
+  ubicacionDomicilio    String? // Urbano | Rural
+  estrato               Int?
+  veredaCorregimiento   String?
+  nombreSede            String?
+  jornada               String? // Mañana | Única | Tarde
+
+  // Educación
+  grado                    String?
+  descolarizado            Boolean @default(false)
+  institucionEducativa     String?
+  secretariaEducacionCert  String?
+  nombreEstablecimiento    String?
+  nombreSedeEducativa      String?
+  codigoDaneSede           String?
+  codigoDaneMunicipio      String?
+
+  // Salud / afiliación
+  afiliacionSalud      String? // Subsidiado | Contributivo | Otro
+  otroTipoAfiliacion   String?
+  eps                  String?
+  consumeMedicamento   Boolean @default(false)
+  cualMedicamento      String? @db.Text
+  correoElectronico    String?
+  tieneConvulsiones    Boolean @default(false)
+  tieneCardiovascular  Boolean @default(false)
+  tieneRespiratoria    Boolean @default(false)
+  tieneAlergias        Boolean @default(false)
+  tieneEpilepsia       Boolean @default(false)
+  tieneOtraEnfermedad  Boolean @default(false)
+  cualOtraEnfermedad   String? @db.Text
+
+  // Discapacidad
+  diagnosticadoDiscapacidad   Boolean @default(false)
+  tieneRegistroLocalizacion   Boolean @default(false)
+  discapacidadFisicoMotor     Boolean @default(false)
+  discapacidadVisual          Boolean @default(false)
+  discapacidadAuditiva        Boolean @default(false)
+  discapacidadIntelectual     Boolean @default(false)
+  discapacidadMultiple        Boolean @default(false)
+  cualDiscapacidad             String? @db.Text
+  recomendacionMedica          String? @db.Text
+
+  // Población especial
+  tipoPoblacion              String? // Ninguno|Afro|Campesino|Indígena|Otro|Raizal|Víctima del conflicto|ROM|Hijo de mujer lideresa
+  cabildoResguardo            String?
+  otroTipoCondicionEspecial   Boolean @default(false)
+  cualOtraCondicion            String? @db.Text
+  victimaConflictoArmado       Boolean @default(false)
+  registroUnicoVictimas        Boolean @default(false)
+  numeroRuv                    String?
+
+  // Documentos anexos (checklist fija)
+  docRegistroCivilOTi            Boolean @default(false)
+  docCertificadoEpsAdres          Boolean @default(false)
+  docCedulaAcudiente               Boolean @default(false)
+  docConsentimientoAsentimiento    Boolean @default(false)
+  docFichaInscripcion              Boolean @default(false)
+  docAceptoPoliticaDatos           Boolean @default(false)
+
+  // Alimentación
+  cuentaConAlimentacion          Boolean @default(false)
+  tipoComplementoAlimentario     String?
+  modalidadAlimentacion          String?
+  requiereAlimentacionCentro     Boolean @default(false)
+
+  // Transporte
+  medioTransporte           String?
+  tiempoRecorrido            String?
+  requiereTransporteCentro   Boolean @default(false)
+  requerimientoTransporte    String? @db.Text
+
+  // Meta / registro (formador / grupo)
+  nombreFormador             String?
+  ccFormador                 String?
+  tipoPoblacionFormador      String?
+  grupoCentroInteres         String?
+  observacionesRegistro      String? @db.Text
+  fechaIngreso               DateTime?
+  departamentoBeneficiario   String? // dato propio de la ficha — NO confundir con Territorio.departamento
+
   territorio                Territorio?             @relation(fields: [territorioId], references: [id])
   selecciones               SeleccionBeneficiario[]
   seguimientos              Seguimiento[]
   dotaciones                DotacionEntrega[]
   evaluacionesPsicosociales EvaluacionPsicosocial[]
+  acudiente                 Acudiente?
+  contactoEmergencia        ContactoEmergencia?
 
   @@map("beneficiarios")
+}
+
+/// MOD-001 — acudiente del beneficiario. 1 beneficiario tiene a lo sumo 1 acudiente (FK única).
+model Acudiente {
+  id             Int          @id @default(autoincrement())
+  beneficiarioId Int          @unique
+  nombres        String
+  edad           Int?
+  documento      String?
+  parentesco     String?
+  direccion      String?      @db.Text
+  telefono       String?
+  correo         String?
+  ocupacion      String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  beneficiario   Beneficiario @relation(fields: [beneficiarioId], references: [id], onDelete: Cascade)
+
+  @@map("acudientes")
+}
+
+/// MOD-001 — contacto de emergencia del beneficiario (persona distinta del acudiente).
+model ContactoEmergencia {
+  id             Int          @id @default(autoincrement())
+  beneficiarioId Int          @unique
+  nombres        String
+  parentesco     String?
+  direccion      String?      @db.Text
+  telefono       String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  beneficiario   Beneficiario @relation(fields: [beneficiarioId], references: [id], onDelete: Cascade)
+
+  @@map("contactos_emergencia")
 }
 
 /// MOD-004 Inventarios — bienes y equipos
@@ -231,6 +367,7 @@ model Territorio {
   id            Int            @id @default(autoincrement())
   codigo        String         @unique
   municipio     String
+  departamento  String
   zona          String?
   poblacion     Int?
   lat           Float?

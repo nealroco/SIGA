@@ -84,6 +84,7 @@ export default async function TerritoriosPage({
             <tr>
               <th>Código</th>
               <th>Municipio</th>
+              <th>Departamento</th>
               <th>Zona</th>
               <th>Población</th>
               <th>Coordenadas</th>
@@ -99,6 +100,7 @@ export default async function TerritoriosPage({
                 <tr key={t.id}>
                   <td className="doc">{t.codigo}</td>
                   <td>{t.municipio}</td>
+                  <td>{t.departamento}</td>
                   <td>{t.zona ?? "—"}</td>
                   <td className="mono">{t.poblacion ?? "—"}</td>
                   <td className="mono">{t.lat != null && t.lng != null ? `${t.lat}, ${t.lng}` : "—"}</td>

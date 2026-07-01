@@ -8,6 +8,7 @@ type Values = {
   id?: number;
   codigo?: string;
   municipio?: string;
+  departamento?: string;
   zona?: string | null;
   poblacion?: number | null;
   lat?: number | null;
@@ -43,6 +44,11 @@ export default function TerritorioForm({
           <label htmlFor="municipio">Municipio <span className="req">*</span></label>
           <input id="municipio" name="municipio" className="input" defaultValue={values.municipio ?? ""} required />
           {fe.municipio && <span className="err">{fe.municipio}</span>}
+        </div>
+        <div className="field">
+          <label htmlFor="departamento">Departamento <span className="req">*</span></label>
+          <input id="departamento" name="departamento" className="input" defaultValue={values.departamento ?? ""} placeholder="Cundinamarca" required />
+          {fe.departamento && <span className="err">{fe.departamento}</span>}
         </div>
         <div className="field">
           <label htmlFor="zona">Zona</label>

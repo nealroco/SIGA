@@ -15,6 +15,7 @@ export type FormState = { error?: string; fieldErrors?: Record<string, string>; 
 const schema = z.object({
   codigo: z.string().trim().min(3, "Código requerido (mín. 3 caracteres)").max(40),
   municipio: z.string().trim().min(3, "Municipio requerido (mín. 3 caracteres)").max(120),
+  departamento: z.string().trim().min(3, "Departamento requerido (mín. 3 caracteres)").max(80),
   zona: z.preprocess((v) => (v === "" || v == null ? undefined : v), z.string().max(120).optional()),
   poblacion: z.preprocess(
     (v) => (v === "" || v == null ? undefined : Number(v)),
@@ -34,6 +35,7 @@ function readForm(fd: FormData) {
   return {
     codigo: String(fd.get("codigo") ?? ""),
     municipio: String(fd.get("municipio") ?? ""),
+    departamento: String(fd.get("departamento") ?? ""),
     zona: fd.get("zona"),
     poblacion: fd.get("poblacion"),
     lat: fd.get("lat"),
@@ -67,6 +69,7 @@ export async function crearTerritorio(_prev: FormState, fd: FormData): Promise<F
     data: {
       codigo: d.codigo,
       municipio: d.municipio,
+      departamento: d.departamento,
       zona: d.zona ?? null,
       poblacion: d.poblacion ?? null,
       lat: d.lat ?? null,
@@ -103,6 +106,7 @@ export async function editarTerritorio(_prev: FormState, fd: FormData): Promise<
     data: {
       codigo: d.codigo,
       municipio: d.municipio,
+      departamento: d.departamento,
       zona: d.zona ?? null,
       poblacion: d.poblacion ?? null,
       lat: d.lat ?? null,

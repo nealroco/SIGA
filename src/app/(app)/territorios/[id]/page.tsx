@@ -52,6 +52,7 @@ export default async function TerritorioDetallePage({ params }: { params: Promis
               id: t.id,
               codigo: t.codigo,
               municipio: t.municipio,
+              departamento: t.departamento,
               zona: t.zona,
               poblacion: t.poblacion,
               lat: t.lat,

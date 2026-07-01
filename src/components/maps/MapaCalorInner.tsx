@@ -11,9 +11,23 @@ function CapaCalor({ puntos }: { puntos: [number, number, number][] }) {
   const map = useMap();
   useEffect(() => {
     if (puntos.length === 0) return;
-    const layer = L.heatLayer(puntos, { radius: 32, blur: 22, maxZoom: 12 }).addTo(map);
+    // El contenedor de Leaflet puede reportar tamaño 0 en el primer frame (antes de que termine el
+    // layout) — leaflet.heat lanza IndexSizeError al crear su canvas sobre un ancho 0. Se reintenta
+    // por frame hasta que el mapa reporte un tamaño real, en vez de crashear la página.
+    let layer: L.Layer | undefined;
+    let raf = 0;
+    const tryAdd = () => {
+      const size = map.getSize();
+      if (size.x === 0 || size.y === 0) {
+        raf = requestAnimationFrame(tryAdd);
+        return;
+      }
+      layer = L.heatLayer(puntos, { radius: 32, blur: 22, maxZoom: 12 }).addTo(map);
+    };
+    tryAdd();
     return () => {
-      map.removeLayer(layer);
+      if (raf) cancelAnimationFrame(raf);
+      if (layer) map.removeLayer(layer);
     };
   }, [map, puntos]);
   return null;

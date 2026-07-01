@@ -82,7 +82,8 @@ const MATRIX: string[][] = [
   ["E", "—", "—", "L", "—", "—", "L", "—", "E"], // 029
 ];
 
-const BENEFICIARIOS = [
+// [documento, nombre, edad, sexo, programa, "municipio — zona", acudienteNombre ("" = sin acudiente)]
+const BENEFICIARIOS: [string, string, number, string, string, string, string][] = [
   ["1010101010", "Laura Gómez Restrepo", 14, "F", "Escuela de fútbol", "Soacha — Comuna 4", "Marta Restrepo"],
   ["1020202020", "Andrés Quintero Páez", 16, "M", "Atletismo", "Bogotá — Bosa", "Jorge Quintero"],
   ["1030303030", "Valentina Ruiz Mora", 12, "F", "Natación", "Girardot — Centro", "Diana Mora"],
@@ -91,7 +92,123 @@ const BENEFICIARIOS = [
   ["1060606060", "Juan David Peña", 15, "M", "Fútbol de salón", "Bogotá — Kennedy", "Ana Peña"],
   ["1070707070", "Sofía Camargo León", 11, "F", "Patinaje", "Zipaquirá — Centro", "Carlos Camargo"],
   ["1080808080", "Mateo Herrera Niño", 18, "M", "Ciclismo", "Chía — La Balsa", "Rosa Niño"],
+  // Ampliación (Fase 1 — ficha completa): variedad geográfica real hacia los 4 territorios nuevos.
+  ["1091112131", "Yuliana Mosquera Perea", 9, "F", "Escuela de fútbol", "Quibdó — Centro", "Nury Perea"],
+  ["1092122232", "Brayan Palacios Murillo", 12, "M", "Atletismo", "Quibdó — Centro", "Élida Murillo"],
+  ["1093132333", "Dayana Copete Asprilla", 15, "F", "Natación", "Quibdó — Centro", ""],
+  ["1101112131", "Esteban Zapata Ramírez", 10, "M", "Baloncesto", "Medellín — Comuna 10 — La Candelaria", "Beatriz Ramírez"],
+  ["1102122232", "Manuela Restrepo Osorio", 13, "F", "Gimnasia", "Medellín — Comuna 10 — La Candelaria", "Gustavo Osorio"],
+  ["1103132333", "Samuel Vélez Correa", 17, "M", "Ciclismo", "Medellín — Comuna 10 — La Candelaria", ""],
+  ["1111112131", "Isabella Sánchez Lozano", 8, "F", "Patinaje", "Cali — Comuna 2", "Norma Lozano"],
+  ["1112122232", "Kevin Cardona Muñoz", 14, "M", "Fútbol de salón", "Cali — Comuna 2", "Édgar Muñoz"],
+  ["1113132333", "Salomé Viveros Ordóñez", 16, "F", "Atletismo", "Cali — Comuna 2", "Patricia Ordóñez"],
+  ["1121112131", "Juan Esteban Gallo Marín", 11, "M", "Escuela de fútbol", "Quimbaya — Centro", "Consuelo Marín"],
+  ["1122122232", "María José Duque Cano", 10, "F", "Gimnasia", "Quimbaya — Centro", ""],
+  ["1131112131", "Nicolás Fajardo Bernal", 12, "M", "Baloncesto", "Soacha — Comuna 4", "Rocío Bernal"],
+  ["1132122232", "Paula Rincón Cárdenas", 9, "F", "Natación", "Girardot — Centro", "Fernando Cárdenas"],
+  ["1141112131", "Sebastián Moya Higuera", 15, "M", "Ciclismo", "Zipaquirá — Centro", ""],
+  ["1142122232", "Antonella Suárez Prieto", 13, "F", "Patinaje", "Chía — La Balsa", "Yolanda Prieto"],
 ];
+
+const POOL_TIPO_SANGRE = ["O+", "O-", "A+", "A-", "B+", "AB+"];
+const POOL_TIPO_POBLACION = [
+  "Ninguno", "Ninguno", "Afro", "Ninguno", "Indígena", "Víctima del conflicto", "Ninguno", "Campesino", "ROM", "Ninguno",
+];
+const POOL_TALLA = ["6", "8", "10", "12", "14", "S", "M", "L"];
+const POOL_JORNADA = ["Mañana", "Única", "Tarde"];
+const POOL_UBICACION_VIVIENDA = ["Urbano", "Urbano", "Rural"];
+const POOL_AFILIACION_SALUD = ["Subsidiado", "Subsidiado", "Contributivo"];
+const POOL_EPS = ["Nueva EPS", "Sura", "Salud Total", "Compensar"];
+const POOL_GRADO = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "11"];
+const POOL_INSTITUCION = ["IE San José", "IE La Esperanza", "IE Simón Bolívar", "IE Santa Ana"];
+const POOL_MEDIO_TRANSPORTE = ["A pie", "Bicicleta", "Transporte público", "Vehículo familiar"];
+const POOL_TIPO_COMPLEMENTO: ("Refrigerio" | "Almuerzo")[] = ["Refrigerio", "Almuerzo"];
+const POOL_DISCAPACIDAD_CAMPO = [
+  "discapacidadFisicoMotor",
+  "discapacidadVisual",
+  "discapacidadAuditiva",
+  "discapacidadIntelectual",
+  "discapacidadMultiple",
+] as const;
+const POOL_CE_NOMBRES = ["Rosa Elena Gómez", "Pedro Antonio Ríos", "Marcela Duque", "Fabio Andrés Salazar", "Nidia Castro"];
+const POOL_CE_PARENTESCO = ["Tía", "Vecino", "Abuelo", "Hermana", "Padrino"];
+const POOL_ACU_PARENTESCO = ["Madre", "Padre", "Abuela", "Tía", "Hermano mayor"];
+const POOL_ACU_OCUPACION = ["Ama de casa", "Comerciante", "Empleado", "Independiente", "Docente"];
+
+/** Genera los ~55 campos nuevos de la ficha, de forma determinista (índice % pool), con huecos deliberados
+ *  (campos omitidos en ciertos índices) — no se rellenan todos los campos en todas las filas, igual que la
+ *  ficha real. Los campos omitidos quedan `undefined` (no se incluyen en create/update) y usan el default
+ *  de columna o quedan NULL, según el tipo — nunca se fabrica un valor donde la ficha real tendría un vacío. */
+function extraCampos(i: number) {
+  // `k` desplaza el índice en 1: con `i` crudo, la fila 0 es divisible por todos los módulos a la vez
+  // (0 % n === 0 siempre) y termina con todas las condiciones raras activas simultáneamente — un
+  // artefacto del módulo, no una fila realista.
+  const k = i + 1;
+  const tieneDiscapacidad = k % 7 === 0;
+  const campoDiscapacidad = POOL_DISCAPACIDAD_CAMPO[k % POOL_DISCAPACIDAD_CAMPO.length];
+  const esVictima = k % 6 === 0;
+  const edadAprox = 8 + (k % 11);
+
+  return {
+    genero: k % 2 === 0 ? "Femenino" : "Masculino", // dominio independiente de `sexo` (legado) — no se fusionan
+    tipoDocumento: edadAprox < 7 ? "RC" : "TI",
+    lugarNacimiento: k % 3 !== 0 ? "Bogotá D.C." : undefined,
+
+    estaturaCm: k % 3 !== 0 ? 95 + edadAprox * 4 + (k % 5) : undefined,
+    pesoKg: k % 3 !== 0 ? 16 + edadAprox * 2.2 + (k % 4) : undefined,
+    tipoSangre: k % 3 !== 0 ? POOL_TIPO_SANGRE[k % POOL_TIPO_SANGRE.length] : undefined,
+    talla: k % 4 !== 0 ? POOL_TALLA[k % POOL_TALLA.length] : undefined,
+
+    ubicacionDomicilio: POOL_UBICACION_VIVIENDA[k % POOL_UBICACION_VIVIENDA.length],
+    estrato: k % 5 !== 0 ? 1 + (k % 6) : undefined,
+    jornada: POOL_JORNADA[k % POOL_JORNADA.length],
+    nombreSede: k % 3 !== 0 ? "Sede Central" : undefined,
+
+    grado: POOL_GRADO[k % POOL_GRADO.length],
+    descolarizado: k % 9 === 0,
+    institucionEducativa: k % 4 !== 0 ? POOL_INSTITUCION[k % POOL_INSTITUCION.length] : undefined,
+
+    afiliacionSalud: POOL_AFILIACION_SALUD[k % POOL_AFILIACION_SALUD.length],
+    eps: k % 4 !== 0 ? POOL_EPS[k % POOL_EPS.length] : undefined,
+    consumeMedicamento: k % 5 === 0,
+    tieneAlergias: k % 4 === 0,
+    tieneRespiratoria: k % 8 === 0,
+    tieneCardiovascular: k % 11 === 0,
+    tieneConvulsiones: k % 13 === 0,
+    tieneEpilepsia: k % 15 === 0,
+    tieneOtraEnfermedad: k % 10 === 0,
+
+    diagnosticadoDiscapacidad: tieneDiscapacidad,
+    tieneRegistroLocalizacion: tieneDiscapacidad && k % 2 === 0,
+    ...(tieneDiscapacidad ? { [campoDiscapacidad]: true } : {}),
+
+    tipoPoblacion: POOL_TIPO_POBLACION[k % POOL_TIPO_POBLACION.length],
+    victimaConflictoArmado: esVictima,
+    registroUnicoVictimas: esVictima && k % 2 === 0,
+
+    docRegistroCivilOTi: k % 6 !== 0,
+    docCertificadoEpsAdres: k % 5 !== 0,
+    docConsentimientoAsentimiento: k % 7 !== 0,
+    docFichaInscripcion: k % 11 !== 0,
+    docAceptoPoliticaDatos: k % 13 !== 0,
+
+    cuentaConAlimentacion: k % 2 === 0,
+    tipoComplementoAlimentario: k % 2 === 0 ? POOL_TIPO_COMPLEMENTO[k % 2] : ("N/A" as const),
+    requiereAlimentacionCentro: k % 2 === 0 && k % 3 === 0,
+
+    medioTransporte: POOL_MEDIO_TRANSPORTE[k % POOL_MEDIO_TRANSPORTE.length],
+    requiereTransporteCentro: k % 4 === 1,
+  };
+}
+
+// En un `update`, Prisma trata `undefined` como "no toques este campo" (no como "bórralo") — los huecos
+// deliberados de extraCampos() deben llegar como `null` explícito para que re-ejecutar el seed sea
+// idempotente y de verdad refleje el hueco, no un valor viejo de una corrida anterior.
+function withExplicitNulls<T extends Record<string, unknown>>(obj: T): T {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) out[key] = value === undefined ? null : value;
+  return out as T;
+}
 
 async function main() {
   console.log("Seed: roles…");
@@ -154,34 +271,82 @@ async function main() {
   }
 
   console.log("Seed: territorios…");
-  const TERRITORIOS: [string, string, string, number, number, number][] = [
-    ["TER-001", "Soacha", "Comuna 4", 450000, 4.5789, -74.2169],
-    ["TER-002", "Bogotá", "Bosa", 700000, 4.6181, -74.1772],
-    ["TER-003", "Girardot", "Centro", 105000, 4.3033, -74.8014],
-    ["TER-004", "Fusagasugá", "Norte", 140000, 4.3453, -74.3644],
-    ["TER-005", "Zipaquirá", "Centro", 130000, 5.0225, -74.0067],
-    ["TER-006", "Chía", "La Balsa", 145000, 4.8615, -74.0356],
+  // [codigo, municipio, departamento, zona, poblacion, lat, lng]
+  const TERRITORIOS: [string, string, string, string, number, number, number][] = [
+    ["TER-001", "Soacha", "Cundinamarca", "Comuna 4", 450000, 4.5789, -74.2169],
+    ["TER-002", "Bogotá", "Bogotá D.C.", "Bosa", 700000, 4.6181, -74.1772],
+    ["TER-003", "Girardot", "Cundinamarca", "Centro", 105000, 4.3033, -74.8014],
+    ["TER-004", "Fusagasugá", "Cundinamarca", "Norte", 140000, 4.3453, -74.3644],
+    ["TER-005", "Zipaquirá", "Cundinamarca", "Centro", 130000, 5.0225, -74.0067],
+    ["TER-006", "Chía", "Cundinamarca", "La Balsa", 145000, 4.8615, -74.0356],
+    // Ampliación (Fase 1): variedad geográfica real para el futuro gráfico "por departamento".
+    ["TER-007", "Quibdó", "Chocó", "Centro", 115000, 5.6947, -76.6612],
+    ["TER-008", "Medellín", "Antioquia", "Comuna 10 — La Candelaria", 2500000, 6.2442, -75.5812],
+    ["TER-009", "Cali", "Valle del Cauca", "Comuna 2", 2200000, 3.4516, -76.5320],
+    ["TER-010", "Quimbaya", "Quindío", "Centro", 34000, 4.6222, -75.7614],
   ];
   const territorioByMunicipio: Record<string, number> = {};
-  for (const [codigo, municipio, zona, poblacion, lat, lng] of TERRITORIOS) {
-    const t = await prisma.territorio.upsert({ where: { codigo }, update: {}, create: { codigo, municipio, zona, poblacion, lat, lng } });
+  for (const [codigo, municipio, departamento, zona, poblacion, lat, lng] of TERRITORIOS) {
+    // Gotcha de upsert: `update: {}` nunca reescribe filas existentes — debe llevar los campos reales
+    // para que re-ejecutar el seed backfillee `departamento` (y el resto) en las 6 filas originales.
+    const t = await prisma.territorio.upsert({
+      where: { codigo },
+      update: { municipio, departamento, zona, poblacion, lat, lng },
+      create: { codigo, municipio, departamento, zona, poblacion, lat, lng },
+    });
     territorioByMunicipio[municipio] = t.id;
   }
 
   console.log("Seed: beneficiarios de muestra…");
-  for (const [documento, nombre, edad, sexo, programa, territorio, acudiente] of BENEFICIARIOS) {
-    const municipio = String(territorio).split("—")[0].trim();
+  for (let i = 0; i < BENEFICIARIOS.length; i++) {
+    const [documento, nombre, edad, sexo, programa, territorio, acudienteNombre] = BENEFICIARIOS[i];
+    const municipio = territorio.split("—")[0].trim();
+    const extra = extraCampos(i);
+    const acudienteData = acudienteNombre
+      ? {
+          nombres: acudienteNombre,
+          parentesco: POOL_ACU_PARENTESCO[i % POOL_ACU_PARENTESCO.length],
+          ocupacion: POOL_ACU_OCUPACION[i % POOL_ACU_OCUPACION.length],
+          telefono: `300${String(1000000 + i).slice(-7)}`,
+        }
+      : null;
+    const contactoData =
+      i % 3 !== 0
+        ? {
+            nombres: POOL_CE_NOMBRES[i % POOL_CE_NOMBRES.length],
+            parentesco: POOL_CE_PARENTESCO[i % POOL_CE_PARENTESCO.length],
+            telefono: `301${String(2000000 + i).slice(-7)}`,
+          }
+        : null;
+
     await prisma.beneficiario.upsert({
-      where: { documento: documento as string },
-      update: {},
-      create: {
-        documento: documento as string,
-        nombre: nombre as string,
-        edad: edad as number,
-        sexo: sexo as string,
-        programa: programa as string,
+      where: { documento },
+      update: {
+        nombre,
+        edad,
+        sexo,
+        programa,
         territorioId: territorioByMunicipio[municipio] ?? null,
-        acudiente: acudiente as string,
+        ...withExplicitNulls(extra),
+        docCedulaAcudiente: !!acudienteData && i % 4 !== 0,
+        acudiente: acudienteData
+          ? { upsert: { create: acudienteData, update: acudienteData } }
+          : undefined,
+        contactoEmergencia: contactoData
+          ? { upsert: { create: contactoData, update: contactoData } }
+          : undefined,
+      },
+      create: {
+        documento,
+        nombre,
+        edad,
+        sexo,
+        programa,
+        territorioId: territorioByMunicipio[municipio] ?? null,
+        ...extra,
+        docCedulaAcudiente: !!acudienteData && i % 4 !== 0,
+        acudiente: acudienteData ? { create: acudienteData } : undefined,
+        contactoEmergencia: contactoData ? { create: contactoData } : undefined,
       },
     });
   }
