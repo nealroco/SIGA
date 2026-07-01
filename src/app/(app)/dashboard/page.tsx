@@ -1,6 +1,14 @@
 import Link from "next/link";
-import { Users, UserCheck, UserX, LayoutGrid, FileSignature, TrendingUp, FolderCheck } from "lucide-react";
+import {
+  Users, UserCheck, UserX, LayoutGrid, FileSignature, TrendingUp, FolderCheck,
+  CalendarClock, Sparkles, ArrowRight,
+} from "lucide-react";
 import { prisma } from "@/lib/db";
+import { beneficiariosPorMes, tieneTendenciaSuficiente, MIN_MESES_PARA_TENDENCIA } from "@/lib/tendencias";
+import { buildInsights } from "@/lib/insights";
+import Sparkline from "@/components/charts/Sparkline";
+import Donut from "@/components/charts/Donut";
+import ProgramaBarChart from "@/components/charts/ProgramaBarChart";
 
 export const dynamic = "force-dynamic";
 
@@ -8,9 +16,10 @@ const cop = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP",
 
 export default async function DashboardPage() {
   const [
-    total, activos, inactivos, modulos, roles, porPrograma,
+    total, activos, inactivos, modulos, roles, porProgramaRaw,
     contratosActivos, contratosPendientes,
     cuentas, pagos, docsAprobados, docsTotal,
+    tendencia,
   ] = await Promise.all([
     prisma.beneficiario.count(),
     prisma.beneficiario.count({ where: { estado: "Activo" } }),
@@ -24,6 +33,7 @@ export default async function DashboardPage() {
     prisma.pago.findMany({ where: { estado: "Aprobado" }, select: { valorPagado: true } }),
     prisma.documento.count({ where: { estado: "Aprobado" } }),
     prisma.documento.count(),
+    beneficiariosPorMes(6),
   ]);
 
   // Base por compromiso (no por caja): solo cuentas Aprobadas/Pagadas cuentan como "aprobado" — ver src/lib/presupuesto.ts
@@ -32,6 +42,26 @@ export default async function DashboardPage() {
   const pctEjecucion = totalAprobado > 0 ? Math.round((totalPagado / totalAprobado) * 100) : 0;
   const pctDocumental = docsTotal > 0 ? Math.round((docsAprobados / docsTotal) * 100) : 0;
 
+  const porPrograma = porProgramaRaw
+    .map((p) => ({ programa: p.programa ?? "Sin programa", count: p._count._all }))
+    .sort((a, b) => b.count - a.count);
+
+  const insights = buildInsights({
+    porPrograma,
+    contratosPendientes,
+    pctDocumental,
+    docsAprobados,
+    docsTotal,
+  });
+  const [insightDistribucion, insightContratos, insightDocumental] = insights;
+
+  // RN de degradación honesta: con menos de MIN_MESES_PARA_TENDENCIA meses reales no se dibuja
+  // una tendencia — hoy la BD solo tiene un mes de historia, así que no se muestra sparkline.
+  const mostrarTendencia = tieneTendenciaSuficiente(tendencia);
+
+  const pctActivos = total > 0 ? Math.round((activos / total) * 100) : 0;
+  const pctInactivos = total > 0 ? Math.round((inactivos / total) * 100) : 0;
+
   return (
     <div>
       <h1 className="page-title">Dashboard</h1>
@@ -39,76 +69,125 @@ export default async function DashboardPage() {
 
       <div className="kpi-grid" style={{ marginTop: 22 }}>
         <div className="card kpi accent">
-          <div className="lab"><Users size={14} /> Beneficiarios</div>
+          <div className="kpi-head">
+            <div className="kpi-badge"><Users /></div>
+          </div>
+          <div className="lab">Beneficiarios</div>
           <div className="val">{total}</div>
           <div className="hint">MOD-001 · total registrados</div>
+          {mostrarTendencia ? (
+            <Sparkline data={tendencia} />
+          ) : (
+            <span className="kpi-nodata-pill">
+              <CalendarClock size={11} /> Histórico insuficiente (mín. {MIN_MESES_PARA_TENDENCIA} meses con datos)
+            </span>
+          )}
         </div>
         <div className="card kpi">
-          <div className="lab"><UserCheck size={14} /> Activos</div>
+          <div className="kpi-head">
+            <div className="kpi-badge tone-green"><UserCheck /></div>
+          </div>
+          <div className="lab">Activos</div>
           <div className="val">{activos}</div>
           <div className="hint">en operación</div>
+          <span className="pill tone-ok"><TrendingUp size={12} /> {pctActivos}% del total</span>
         </div>
         <div className="card kpi">
-          <div className="lab"><UserX size={14} /> Inactivos</div>
+          <div className="kpi-head">
+            <div className="kpi-badge tone-coral"><UserX /></div>
+          </div>
+          <div className="lab">Inactivos</div>
           <div className="val">{inactivos}</div>
           <div className="hint">baja lógica (RN-002)</div>
+          <span className={`pill ${inactivos === 0 ? "tone-ok" : "tone-info"}`}><TrendingUp size={12} /> {pctInactivos}% del total</span>
         </div>
         <div className="card kpi">
-          <div className="lab"><LayoutGrid size={14} /> Módulos</div>
+          <div className="kpi-head">
+            <div className="kpi-badge tone-blue"><LayoutGrid /></div>
+          </div>
+          <div className="lab">Módulos</div>
           <div className="val">{modulos}</div>
           <div className="hint">{roles} roles · matriz 9×{modulos}</div>
+          <span className="pill tone-ok"><LayoutGrid size={12} /> Cobertura completa</span>
         </div>
       </div>
 
       <div style={{ marginTop: 14 }}>
         <p className="section-cap">KPIs cruzados (RN-016: visibles según módulos activos)</p>
-        <div className="kpi-grid">
+        <div className="kpi-grid-2">
           <div className="card kpi">
-            <div className="lab"><FileSignature size={14} /> Contratos aprobados</div>
+            <div className="kpi-head">
+              <div className="kpi-badge tone-blue"><FileSignature /></div>
+            </div>
+            <div className="lab">Contratos aprobados</div>
             <div className="val">{contratosActivos}</div>
             <div className="hint">{contratosPendientes} pendientes de aprobación</div>
+            <span className={`pill tone-${insightContratos.tono}`}>
+              <insightContratos.icon size={12} /> {insightContratos.titulo}
+            </span>
           </div>
           <div className="card kpi">
-            <div className="lab"><TrendingUp size={14} /> % ejecución financiera</div>
+            <div className="kpi-head">
+              <div className="kpi-badge tone-amber"><TrendingUp /></div>
+            </div>
+            <div className="lab">% ejecución financiera</div>
             <div className="val">{pctEjecucion}%</div>
             <div className="hint">{cop.format(totalPagado)} / {cop.format(totalAprobado)}</div>
+            <div className="progress-bar" role="progressbar" aria-valuenow={pctEjecucion} aria-valuemin={0} aria-valuemax={100}>
+              <span style={{ width: `${Math.min(100, pctEjecucion)}%` }} />
+            </div>
+            <div className="progress-scale"><span>0%</span><span>50%</span><span>100%</span></div>
+            <span className="pill tone-info"><Sparkles size={12} /> Avance financiero del presupuesto</span>
           </div>
-          <div className="card kpi">
-            <div className="lab"><FolderCheck size={14} /> Expediente documental</div>
-            <div className="val">{pctDocumental}%</div>
-            <div className="hint">{docsAprobados} / {docsTotal} documentos aprobados</div>
+          <div className="card kpi" style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
+            <div style={{ flex: 1, minWidth: 140 }}>
+              <div className="kpi-head">
+                <div className="kpi-badge tone-blue"><FolderCheck /></div>
+              </div>
+              <div className="lab">Expediente documental</div>
+              <div className="val">{pctDocumental}%</div>
+              <div className="hint">{docsAprobados} / {docsTotal} documentos aprobados</div>
+              <span className={`pill tone-${insightDocumental.tono}`}>
+                <insightDocumental.icon size={12} /> {insightDocumental.titulo}
+              </span>
+            </div>
+            <Donut pct={pctDocumental} />
           </div>
         </div>
       </div>
 
-      <div style={{ marginTop: 28 }}>
-        <p className="section-cap">Beneficiarios activos por programa</p>
-        <div className="table-wrap">
-          <table className="data">
-            <thead>
-              <tr>
-                <th>Programa</th>
-                <th>Activos</th>
-              </tr>
-            </thead>
-            <tbody>
-              {porPrograma.length === 0 ? (
-                <tr><td colSpan={2} className="empty">Sin datos</td></tr>
-              ) : (
-                porPrograma
-                  .sort((a, b) => b._count._all - a._count._all)
-                  .map((p) => (
-                    <tr key={p.programa ?? "—"}>
-                      <td>{p.programa ?? "Sin programa"}</td>
-                      <td className="mono">{p._count._all}</td>
-                    </tr>
-                  ))
-              )}
-            </tbody>
-          </table>
+      <div style={{ marginTop: 28, display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 20 }}>
+        <div>
+          <p className="section-cap">Beneficiarios activos por programa</p>
+          {porPrograma.length === 0 ? (
+            <div className="card" style={{ padding: 24 }}><p className="empty">Sin datos</p></div>
+          ) : (
+            <div className="card" style={{ padding: "18px 8px" }}>
+              <ProgramaBarChart data={porPrograma} />
+            </div>
+          )}
+          <div style={{ marginTop: 16 }}>
+            <Link href="/beneficiarios" className="btn btn-blue">Ir a Beneficiarios <ArrowRight size={16} /></Link>
+          </div>
         </div>
-        <div style={{ marginTop: 16 }}>
-          <Link href="/beneficiarios" className="btn btn-blue">Ir a Beneficiarios →</Link>
+
+        <div>
+          <p className="section-cap">Información clave</p>
+          <div className="card" style={{ padding: 18 }}>
+            {[insightDistribucion, insightContratos, insightDocumental].map((insight, i) => (
+              <div key={i} className="insight-row">
+                <div className={`kpi-badge tone-${insight.tono === "warn" ? "coral" : insight.tono === "ok" ? "green" : "blue"}`}>
+                  <insight.icon />
+                </div>
+                <div>
+                  <div className="insight-titulo">
+                    {insight.href ? <Link href={insight.href}>{insight.titulo}</Link> : insight.titulo}
+                  </div>
+                  <div className="insight-cuerpo">{insight.cuerpo}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
