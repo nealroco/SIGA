@@ -135,15 +135,15 @@ async function main() {
   console.log("Seed: usuarios…");
   const hash = await bcrypt.hash("siga2026", 10);
   const usuarios = [
-    ["Admin SIGA", "admin@siga.gov.co", "Administrador"],
-    ["Carolina Revisora", "revisor@siga.gov.co", "Revisor"],
-    ["Coord. Deportiva", "coord@siga.gov.co", "Coord. deportiva"],
-    ["Fernanda Financiera", "financiera@siga.gov.co", "Financiera"],
-    ["Sergio Supervisor", "supervisor@siga.gov.co", "Supervisor"],
-    ["Óscar Operador", "operador@siga.gov.co", "Operador"],
-    ["Elena Entrenadora", "entrenador@siga.gov.co", "Entrenador"],
-    ["Iván Infraestructura", "infraestructura@siga.gov.co", "Infraestructura"],
-    ["Tatiana Tecnología", "tecnologia@siga.gov.co", "Tecnología"],
+    ["Admin SIGA", "admin@sigadeportes.co", "Administrador"],
+    ["Carolina Revisora", "revisor@sigadeportes.co", "Revisor"],
+    ["Coord. Deportiva", "coord@sigadeportes.co", "Coord. deportiva"],
+    ["Fernanda Financiera", "financiera@sigadeportes.co", "Financiera"],
+    ["Sergio Supervisor", "supervisor@sigadeportes.co", "Supervisor"],
+    ["Óscar Operador", "operador@sigadeportes.co", "Operador"],
+    ["Elena Entrenadora", "entrenador@sigadeportes.co", "Entrenador"],
+    ["Iván Infraestructura", "infraestructura@sigadeportes.co", "Infraestructura"],
+    ["Tatiana Tecnología", "tecnologia@sigadeportes.co", "Tecnología"],
   ];
   for (const [nombre, correo, rol] of usuarios) {
     await prisma.usuario.upsert({
@@ -203,8 +203,8 @@ async function main() {
   }
 
   console.log("Seed: contratos de muestra…");
-  const fin = await prisma.usuario.findUnique({ where: { correo: "financiera@siga.gov.co" } });
-  const adminU = await prisma.usuario.findUnique({ where: { correo: "admin@siga.gov.co" } });
+  const fin = await prisma.usuario.findUnique({ where: { correo: "financiera@sigadeportes.co" } });
+  const adminU = await prisma.usuario.findUnique({ where: { correo: "admin@sigadeportes.co" } });
   const CONTRATOS: [string, string, string, number, string][] = [
     ["CTO-2026-001", "Operación de escuelas de fútbol — Soacha", "8001234567", 120000000, "Registrado"],
     ["CTO-2026-002", "Dotación deportiva para programas de atletismo", "9009876543", 85000000, "Aprobado"],
@@ -228,7 +228,7 @@ async function main() {
   }
 
   console.log("Seed: convocatorias…");
-  const sup = await prisma.usuario.findUnique({ where: { correo: "supervisor@siga.gov.co" } });
+  const sup = await prisma.usuario.findUnique({ where: { correo: "supervisor@sigadeportes.co" } });
   const CONVOCATORIAS: [string, string, number, string][] = [
     ["Convocatoria Escuelas Deportivas 2026-1", "Inscripción a escuelas de formación deportiva", 50, "Abierta"],
     ["Convocatoria Semillero de Atletismo", "Selección para el semillero juvenil de atletismo", 20, "En selección"],
@@ -243,8 +243,8 @@ async function main() {
   }
 
   console.log("Seed: personal…");
-  const operU = await prisma.usuario.findUnique({ where: { correo: "operador@siga.gov.co" } });
-  const supUPersonal = await prisma.usuario.findUnique({ where: { correo: "supervisor@siga.gov.co" } });
+  const operU = await prisma.usuario.findUnique({ where: { correo: "operador@sigadeportes.co" } });
+  const supUPersonal = await prisma.usuario.findUnique({ where: { correo: "supervisor@sigadeportes.co" } });
   const PERSONAL: [string, string, string, string, string, string][] = [
     ["52111222", "Diana Torres", "Profesional de apoyo", "Administrativa", "Contratista", "Aprobado"],
     ["80333444", "Carlos Méndez", "Coordinador de programa", "Deportiva", "OPS", "Pendiente"],
@@ -264,8 +264,8 @@ async function main() {
   }
 
   console.log("Seed: expediente documental + informe + seguimiento…");
-  const supU = await prisma.usuario.findUnique({ where: { correo: "supervisor@siga.gov.co" } });
-  const tecU = await prisma.usuario.findUnique({ where: { correo: "tecnologia@siga.gov.co" } });
+  const supU = await prisma.usuario.findUnique({ where: { correo: "supervisor@sigadeportes.co" } });
+  const tecU = await prisma.usuario.findUnique({ where: { correo: "tecnologia@sigadeportes.co" } });
   const c1 = await prisma.contrato.findUnique({ where: { numero: "CTO-2026-001" } });
   if (c1) {
     const DOCS: [string, boolean, string][] = [
@@ -289,8 +289,8 @@ async function main() {
   }
 
   console.log("Seed: fuentes de financiación y rubros…");
-  const finU = await prisma.usuario.findUnique({ where: { correo: "financiera@siga.gov.co" } });
-  const adminU2 = await prisma.usuario.findUnique({ where: { correo: "admin@siga.gov.co" } });
+  const finU = await prisma.usuario.findUnique({ where: { correo: "financiera@sigadeportes.co" } });
+  const adminU2 = await prisma.usuario.findUnique({ where: { correo: "admin@sigadeportes.co" } });
   const FUENTES: [string, string, string, number, string][] = [
     ["FUE-001", "Nación — Mindeporte", "Nación", 300000000, "2026"],
     ["FUE-002", "Recursos propios ESAL-JDEC", "Propios", 80000000, "2026"],
@@ -345,8 +345,8 @@ async function main() {
   }
 
   console.log("Seed: indicadores físicos y avances…");
-  const coordU = await prisma.usuario.findUnique({ where: { correo: "coord@siga.gov.co" } });
-  const adminU3 = await prisma.usuario.findUnique({ where: { correo: "admin@siga.gov.co" } });
+  const coordU = await prisma.usuario.findUnique({ where: { correo: "coord@sigadeportes.co" } });
+  const adminU3 = await prisma.usuario.findUnique({ where: { correo: "admin@sigadeportes.co" } });
   const ind = await prisma.indicadorFisico.upsert({
     where: { codigo: "IND-001" },
     update: {},
@@ -363,7 +363,7 @@ async function main() {
   }
 
   console.log("Seed: inventarios, dotación y lotes…");
-  const infraU = await prisma.usuario.findUnique({ where: { correo: "infraestructura@siga.gov.co" } });
+  const infraU = await prisma.usuario.findUnique({ where: { correo: "infraestructura@sigadeportes.co" } });
   const item1 = await prisma.item.upsert({ where: { codigo: "ITM-001" }, update: {}, create: { codigo: "ITM-001", nombre: "Balones de fútbol", categoria: "Deportivo", ubicacion: "Bodega central", cantidad: 80 } });
   await prisma.item.upsert({ where: { codigo: "ITM-002" }, update: {}, create: { codigo: "ITM-002", nombre: "Uniformes talla M", categoria: "Dotación", ubicacion: "Bodega central", cantidad: 150 } });
   const ben1 = await prisma.beneficiario.findFirst();
@@ -397,8 +397,8 @@ async function main() {
   }
 
   console.log("Seed: evaluación ESAL y psicosocial…");
-  const adminU4 = await prisma.usuario.findUnique({ where: { correo: "admin@siga.gov.co" } });
-  const supU2 = await prisma.usuario.findUnique({ where: { correo: "supervisor@siga.gov.co" } });
+  const adminU4 = await prisma.usuario.findUnique({ where: { correo: "admin@sigadeportes.co" } });
+  const supU2 = await prisma.usuario.findUnique({ where: { correo: "supervisor@sigadeportes.co" } });
   const tercero1 = await prisma.tercero.findFirst();
   if (tercero1) {
     const evEx = await prisma.evaluacionEsal.findFirst({ where: { terceroId: tercero1.id } });
@@ -419,8 +419,8 @@ async function main() {
   }
 
   console.log("Seed: comité, comunicaciones y notificaciones…");
-  const supU3 = await prisma.usuario.findUnique({ where: { correo: "supervisor@siga.gov.co" } });
-  const adminU5 = await prisma.usuario.findUnique({ where: { correo: "admin@siga.gov.co" } });
+  const supU3 = await prisma.usuario.findUnique({ where: { correo: "supervisor@sigadeportes.co" } });
+  const adminU5 = await prisma.usuario.findUnique({ where: { correo: "admin@sigadeportes.co" } });
   const c1acta = await prisma.contrato.findUnique({ where: { numero: "CTO-2026-001" } });
   const actaEx = await prisma.actaComite.findFirst();
   if (!actaEx) {

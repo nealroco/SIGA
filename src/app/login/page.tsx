@@ -19,9 +19,9 @@ export default async function LoginPage() {
         <div className="login-hint">
           Demo · usuarios sembrados:
           <br />
-          <code>admin@siga.gov.co</code> (Administrador) ·{" "}
-          <code>revisor@siga.gov.co</code> (Revisor) ·{" "}
-          <code>coord@siga.gov.co</code> (Coord. deportiva)
+          <code>admin@sigadeportes.co</code> (Administrador) ·{" "}
+          <code>revisor@sigadeportes.co</code> (Revisor) ·{" "}
+          <code>coord@sigadeportes.co</code> (Coord. deportiva)
           <br />
           Contraseña: <code>siga2026</code>
         </div>

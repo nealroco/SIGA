@@ -6,7 +6,7 @@ import { signIn } from "next-auth/react";
 
 export default function LoginForm() {
   const router = useRouter();
-  const [correo, setCorreo] = useState("admin@siga.gov.co");
+  const [correo, setCorreo] = useState("admin@sigadeportes.co");
   const [password, setPassword] = useState("siga2026");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,7 +36,7 @@ export default function LoginForm() {
           type="email"
           value={correo}
           onChange={(e) => setCorreo(e.target.value)}
-          placeholder="usuario@siga.gov.co"
+          placeholder="usuario@sigadeportes.co"
           autoComplete="username"
           required
         />

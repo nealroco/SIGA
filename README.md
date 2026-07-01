@@ -45,9 +45,9 @@ npm run dev                   # http://localhost:3000
 
 | Correo | Rol | Permiso en MOD-001 |
 |---|---|---|
-| `admin@siga.gov.co` | Administrador | Escritura (crea/edita/baja) |
-| `coord@siga.gov.co` | Coord. deportiva | Escritura |
-| `revisor@siga.gov.co` | Revisor | Solo lectura |
+| `admin@sigadeportes.co` | Administrador | Escritura (crea/edita/baja) |
+| `coord@sigadeportes.co` | Coord. deportiva | Escritura |
+| `revisor@sigadeportes.co` | Revisor | Solo lectura |
 
 Contraseña para todos: `siga2026`
 
