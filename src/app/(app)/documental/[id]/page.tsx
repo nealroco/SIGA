@@ -74,8 +74,8 @@ export default async function DocumentoDetallePage({ params }: { params: Promise
           </p>
           <div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
             <div className="field" style={{ marginBottom: 0, flex: 1, minWidth: 260 }}>
-              <label htmlFor="archivoUrl">URL o nombre de archivo <span className="req">*</span></label>
-              <input id="archivoUrl" name="archivoUrl" className="input" placeholder="acta-inicio-v2.pdf o https://…" required />
+              <label htmlFor="archivoUrl">URL del archivo <span className="req">*</span></label>
+              <input id="archivoUrl" name="archivoUrl" type="url" className="input" placeholder="https://…" required />
             </div>
             <button className="btn btn-blue" type="submit">Cargar versión</button>
           </div>

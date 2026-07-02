@@ -41,6 +41,19 @@ npx prisma db seed            # 9 roles, 29 módulos, matriz 9×29, usuarios y b
 npm run dev                   # http://localhost:3000
 ```
 
+## Tests
+
+```bash
+# una sola vez por máquina: crear el schema de test (separado de dev/producción)
+mysql -h 127.0.0.1 -P 3307 -u siga -p -e "CREATE DATABASE siga_deportes_test; GRANT ALL PRIVILEGES ON siga_deportes_test.* TO 'siga'@'%';"
+cp .env.test.example .env.test
+
+npm run test        # Vitest — unitarios/integración contra siga_deportes_test (nunca dev/producción)
+npm run test:e2e    # Playwright — requiere antes: npx playwright install --with-deps chromium
+```
+
+El `globalSetup` de Vitest resetea `siga_deportes_test` (`prisma db push --force-reset`) antes de cada corrida — verifica primero que el nombre del schema en `DATABASE_URL` termine en `_test`, así que nunca toca dev/producción por accidente. Los fixtures mínimos están en `prisma/testFixtures.ts` (no se usa el seed completo en los tests: es lento y acopla los casos entre sí).
+
 ## Usuarios de prueba (seed)
 
 | Correo | Rol | Permiso en MOD-001 |

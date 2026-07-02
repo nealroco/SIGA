@@ -22,6 +22,15 @@ const schema = z.object({
   obligatorio: z.preprocess((v) => v === "on" || v === "true" || v === true, z.boolean()),
 });
 
+const cargarVersionSchema = z.object({
+  documentoId: z.preprocess((v) => Number(v), z.number().int().positive("Documento no válido")),
+  archivoUrl: z
+    .string()
+    .trim()
+    .url("URL inválida")
+    .refine((v) => v.startsWith("https://"), "Solo se permiten URLs https"),
+});
+
 function readForm(fd: FormData) {
   return {
     contratoId: fd.get("contratoId"),
@@ -81,12 +90,15 @@ export async function cargarVersion(fd: FormData): Promise<void> {
   if (!(await can(session.user.rol, MOD, "cargar")))
     throw new Error(`No autorizado: cargar versiones requiere escritura (E) o carga (C) en MOD-005. Tu rol es ${session.user.rol}.`);
 
-  const documentoId = Number(fd.get("documentoId"));
-  if (!documentoId) throw new Error("Documento no válido.");
-  const archivoUrl = String(fd.get("archivoUrl") ?? "").trim();
-  if (!archivoUrl) {
-    redirect(`/documental/${documentoId}`);
+  const parsed = cargarVersionSchema.safeParse({
+    documentoId: fd.get("documentoId"),
+    archivoUrl: fd.get("archivoUrl"),
+  });
+  if (!parsed.success) {
+    const fieldErrors = fieldErrorsOf(parsed.error);
+    throw new Error(fieldErrors.archivoUrl ?? fieldErrors.documentoId ?? "Datos inválidos.");
   }
+  const { documentoId, archivoUrl } = parsed.data;
 
   const doc = await prisma.documento.findUnique({ where: { id: documentoId } });
   if (!doc) {
