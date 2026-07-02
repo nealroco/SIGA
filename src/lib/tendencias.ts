@@ -37,3 +37,33 @@ export async function beneficiariosPorMes(mesesAtras = 6): Promise<PuntoMensual[
 export function tieneTendenciaSuficiente(puntos: PuntoMensual[]): boolean {
   return puntos.filter((p) => p.count > 0).length >= MIN_MESES_PARA_TENDENCIA;
 }
+
+/**
+ * Beneficiarios por mes de INGRESO real al programa (`fechaIngreso`), no de creación del registro
+ * en BD (`createdAt`, que puede reflejar una importación masiva sin relación con el ingreso real).
+ * Mismo patrón de agrupación en JS que `beneficiariosPorMes`.
+ */
+export async function beneficiariosPorMesIngreso(mesesAtras = 6): Promise<PuntoMensual[]> {
+  const desde = new Date();
+  desde.setMonth(desde.getMonth() - (mesesAtras - 1));
+  desde.setDate(1);
+  desde.setHours(0, 0, 0, 0);
+
+  const rows = await prisma.beneficiario.findMany({
+    where: { fechaIngreso: { not: null, gte: desde } },
+    select: { fechaIngreso: true },
+  });
+
+  const buckets = new Map<string, number>();
+  for (let i = 0; i < mesesAtras; i++) {
+    const d = new Date(desde);
+    d.setMonth(d.getMonth() + i);
+    buckets.set(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, 0);
+  }
+  for (const r of rows) {
+    if (!r.fechaIngreso) continue;
+    const key = `${r.fechaIngreso.getFullYear()}-${String(r.fechaIngreso.getMonth() + 1).padStart(2, "0")}`;
+    if (buckets.has(key)) buckets.set(key, (buckets.get(key) ?? 0) + 1);
+  }
+  return Array.from(buckets.entries()).map(([mes, count]) => ({ mes, count }));
+}

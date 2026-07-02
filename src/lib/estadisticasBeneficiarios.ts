@@ -245,6 +245,133 @@ export async function medioTransportePorGrado(filtro: Filtro = {}): Promise<{ fi
   return { filas: ordenarPorGrado(filas), series };
 }
 
+// ===== Demografía, salud/discapacidad y completitud documental (rediseño lúdico) =====
+
+const RANGOS_EDAD: { desde: number; hasta: number; etiqueta: string }[] = [
+  { desde: 0, hasta: 8, etiqueta: "6-8" },
+  { desde: 9, hasta: 11, etiqueta: "9-11" },
+  { desde: 12, hasta: 14, etiqueta: "12-14" },
+  { desde: 15, hasta: 18, etiqueta: "15-18" },
+  { desde: 19, hasta: Infinity, etiqueta: "19+" },
+];
+
+/** Bucketiza `edad` en rangos escolares — se agrupa en JS, no vale la pena un groupBy de Prisma para 5 buckets. */
+export async function distribucionPorEdad(filtro: Filtro = {}): Promise<Categoria[]> {
+  const rows = await prisma.beneficiario.findMany({
+    where: { ...ACTIVO, ...filtrosOpcionales(filtro) },
+    select: { edad: true },
+  });
+  const conteos = new Map<string, number>(RANGOS_EDAD.map((r) => [r.etiqueta, 0]));
+  let sinDato = 0;
+  for (const r of rows) {
+    if (r.edad == null) { sinDato++; continue; }
+    const rango = RANGOS_EDAD.find((rg) => r.edad! >= rg.desde && r.edad! <= rg.hasta);
+    if (rango) conteos.set(rango.etiqueta, (conteos.get(rango.etiqueta) ?? 0) + 1);
+  }
+  const categorias = RANGOS_EDAD.map((r) => ({ categoria: r.etiqueta, count: conteos.get(r.etiqueta) ?? 0 })).filter(
+    (c) => c.count > 0
+  );
+  if (sinDato > 0) categorias.push({ categoria: "Sin dato", count: sinDato });
+  return categorias;
+}
+
+export async function composicionPorDiscapacidad(filtro: Filtro = {}): Promise<Categoria[]> {
+  const rows = await prisma.beneficiario.groupBy({
+    by: ["diagnosticadoDiscapacidad"],
+    _count: { _all: true },
+    where: { ...ACTIVO, ...filtrosOpcionales(filtro) },
+  });
+  return porCategoria(
+    rows.map((r) => ({ count: r._count._all, valor: r.diagnosticadoDiscapacidad })),
+    (r) => (r.valor ? "Sí" : "No")
+  );
+}
+
+/** Cuenta cada tipo de discapacidad SOLO entre quienes tienen `diagnosticadoDiscapacidad: true`.
+ *  Un beneficiario puede tener más de un tipo marcado — la suma de estos conteos puede superar
+ *  el total de diagnosticados, esto NO es un porcentaje del total. */
+export async function tiposDeDiscapacidad(filtro: Filtro = {}): Promise<Categoria[]> {
+  const rows = await prisma.beneficiario.findMany({
+    where: { ...ACTIVO, diagnosticadoDiscapacidad: true, ...filtrosOpcionales(filtro) },
+    select: {
+      discapacidadFisicoMotor: true,
+      discapacidadVisual: true,
+      discapacidadAuditiva: true,
+      discapacidadIntelectual: true,
+      discapacidadMultiple: true,
+    },
+  });
+  const etiquetas: { clave: keyof (typeof rows)[number]; etiqueta: string }[] = [
+    { clave: "discapacidadFisicoMotor", etiqueta: "Físico-motora" },
+    { clave: "discapacidadVisual", etiqueta: "Visual" },
+    { clave: "discapacidadAuditiva", etiqueta: "Auditiva" },
+    { clave: "discapacidadIntelectual", etiqueta: "Intelectual" },
+    { clave: "discapacidadMultiple", etiqueta: "Múltiple" },
+  ];
+  return etiquetas
+    .map(({ clave, etiqueta }) => ({ categoria: etiqueta, count: rows.filter((r) => r[clave]).length }))
+    .filter((c) => c.count > 0)
+    .sort((a, b) => b.count - a.count);
+}
+
+/** Etiquetas idénticas a las de `BeneficiarioForm.tsx` (sección "Documentos anexos") para que el
+ *  vocabulario coincida entre el formulario y las estadísticas. */
+const DOCUMENTOS_CHECKLIST: { clave: string; etiqueta: string }[] = [
+  { clave: "docRegistroCivilOTi", etiqueta: "Registro civil o TI" },
+  { clave: "docCertificadoEpsAdres", etiqueta: "Certificado EPS/Adres" },
+  { clave: "docCedulaAcudiente", etiqueta: "Cédula del acudiente" },
+  { clave: "docConsentimientoAsentimiento", etiqueta: "Consentimiento/asentimiento" },
+  { clave: "docFichaInscripcion", etiqueta: "Ficha de inscripción" },
+  { clave: "docAceptoPoliticaDatos", etiqueta: "Aceptó política de datos" },
+];
+
+export type DocumentoPorcentaje = { clave: string; etiqueta: string; presentes: number; total: number };
+
+/** % de beneficiarios activos con cada documento presente — usado por ChecklistCompletitud. */
+export async function porcentajeDocumentoPresente(filtro: Filtro = {}): Promise<DocumentoPorcentaje[]> {
+  const rows = await prisma.beneficiario.findMany({
+    where: { ...ACTIVO, ...filtrosOpcionales(filtro) },
+    select: {
+      docRegistroCivilOTi: true,
+      docCertificadoEpsAdres: true,
+      docCedulaAcudiente: true,
+      docConsentimientoAsentimiento: true,
+      docFichaInscripcion: true,
+      docAceptoPoliticaDatos: true,
+    },
+  });
+  const total = rows.length;
+  return DOCUMENTOS_CHECKLIST.map(({ clave, etiqueta }) => ({
+    clave,
+    etiqueta,
+    presentes: rows.filter((r) => r[clave as keyof (typeof rows)[number]]).length,
+    total,
+  }));
+}
+
+/** Cuenta, por beneficiario, cuántos de los 6 documentos están presentes (0 a 6). */
+export async function distribucionCompletitud(filtro: Filtro = {}): Promise<Categoria[]> {
+  const rows = await prisma.beneficiario.findMany({
+    where: { ...ACTIVO, ...filtrosOpcionales(filtro) },
+    select: {
+      docRegistroCivilOTi: true,
+      docCertificadoEpsAdres: true,
+      docCedulaAcudiente: true,
+      docConsentimientoAsentimiento: true,
+      docFichaInscripcion: true,
+      docAceptoPoliticaDatos: true,
+    },
+  });
+  const conteos = new Map<number, number>();
+  for (const r of rows) {
+    const n = DOCUMENTOS_CHECKLIST.filter(({ clave }) => r[clave as keyof typeof r]).length;
+    conteos.set(n, (conteos.get(n) ?? 0) + 1);
+  }
+  return Array.from(conteos.entries())
+    .map(([n, count]) => ({ categoria: `${n}/${DOCUMENTOS_CHECKLIST.length}`, count }))
+    .sort((a, b) => Number(b.categoria.split("/")[0]) - Number(a.categoria.split("/")[0]));
+}
+
 // ===== Geográfico (join real vía territorio, mismo patrón que `inversionPorTerritorio` en geo.ts) =====
 
 /** Suma beneficiarios activos por departamento — varios territorios del mismo departamento se agregan
