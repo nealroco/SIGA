@@ -2,7 +2,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
-import { calcularEjecucionRubro, semaforoEjecucion } from "@/lib/presupuesto";
+import { calcularEjecucionRubros, semaforoEjecucion } from "@/lib/presupuesto";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ export default async function RubrosPage() {
   const puedeCrear = session ? await can(session.user.rol, "MOD-003", "crear") : false;
 
   const rubros = await prisma.rubro.findMany({ orderBy: { codigo: "asc" }, include: { fuente: true } });
-  const ejecuciones = await Promise.all(rubros.map((r) => calcularEjecucionRubro(r.id, r.valorAsignado)));
+  const ejecucionesPorId = await calcularEjecucionRubros(rubros.map((r) => ({ id: r.id, valorAsignado: r.valorAsignado })));
 
   return (
     <div>
@@ -51,8 +51,8 @@ export default async function RubrosPage() {
             {rubros.length === 0 ? (
               <tr><td colSpan={8} className="empty">No hay rubros.</td></tr>
             ) : (
-              rubros.map((r, i) => {
-                const ej = ejecuciones[i];
+              rubros.map((r) => {
+                const ej = ejecucionesPorId.get(r.id)!;
                 return (
                   <tr key={r.id}>
                     <td className="doc">{r.codigo} <span style={{ color: "var(--muted)" }}>· {r.nombre}</span></td>

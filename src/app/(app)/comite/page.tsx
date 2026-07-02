@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -17,13 +18,26 @@ const fmt = (d: Date) => new Date(d).toLocaleDateString("es-CO");
 export default async function ComitePage({ searchParams }: { searchParams: Promise<{ estado?: string }> }) {
   const sp = await searchParams;
   const session = await auth();
-  const puedeCrear = session ? await can(session.user.rol, "MOD-015", "crear") : false;
+  if (!session?.user) redirect("/login");
+  if (!(await can(session.user.rol, "MOD-015", "ver"))) redirect("/dashboard");
+  const puedeCrear = await can(session.user.rol, "MOD-015", "crear");
 
   const estado = sp.estado ?? "";
   const where: Prisma.ActaComiteWhereInput = {};
   if (["Registrada", "Aprobada", "Rechazada"].includes(estado)) where.estado = estado;
 
-  const items = await prisma.actaComite.findMany({ where, orderBy: { fecha: "desc" }, include: { createdBy: true } });
+  const items = await prisma.actaComite.findMany({
+    where,
+    orderBy: { fecha: "desc" },
+    take: 200,
+    select: {
+      id: true,
+      fecha: true,
+      tema: true,
+      estado: true,
+      createdBy: { select: { nombre: true } },
+    },
+  });
 
   return (
     <div>

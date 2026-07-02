@@ -121,6 +121,8 @@ export async function editarPersonal(_prev: FormState, fd: FormData): Promise<Fo
 
   const anterior = await prisma.personal.findUnique({ where: { id } });
   if (!anterior) return { error: "El registro de personal no existe." };
+  if (anterior.estado === "Inactivo")
+    return { error: "Un registro dado de baja (Inactivo) no puede editarse." };
   if (anterior.estadoAprobacion === "Aprobado")
     return { error: "Una vinculación ya aprobada no puede editarse." };
 

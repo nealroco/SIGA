@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -11,10 +12,12 @@ export default async function BeneficiariosPage({
 }: {
   searchParams: Promise<{ q?: string; estado?: string }>;
 }) {
-  const sp = await searchParams;
   const session = await auth();
-  const puedeCrear = session ? await can(session.user.rol, "MOD-001", "crear") : false;
+  if (!session?.user) redirect("/login");
+  if (!(await can(session.user.rol, "MOD-001", "ver"))) redirect("/dashboard");
+  const puedeCrear = await can(session.user.rol, "MOD-001", "crear");
 
+  const sp = await searchParams;
   const q = (sp.q ?? "").trim();
   const estado = sp.estado ?? "";
 
@@ -24,7 +27,20 @@ export default async function BeneficiariosPage({
   }
   if (estado === "Activo" || estado === "Inactivo") where.estado = estado;
 
-  const items = await prisma.beneficiario.findMany({ where, orderBy: { createdAt: "desc" }, include: { territorio: true } });
+  const items = await prisma.beneficiario.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    take: 200,
+    select: {
+      id: true,
+      documento: true,
+      nombre: true,
+      edad: true,
+      programa: true,
+      estado: true,
+      territorio: { select: { municipio: true, zona: true } },
+    },
+  });
 
   return (
     <div>

@@ -18,6 +18,10 @@ const schema = z.object({
   fecha: z.preprocess((v) => (v === "" || v == null ? undefined : v), z.string().optional()),
   instrumento: z.preprocess((v) => (v === "" || v == null ? undefined : v), z.string().max(160).optional()),
   resultado: z.preprocess((v) => (v === "" || v == null ? undefined : v), z.string().max(600).optional()),
+  nivelRiesgo: z.preprocess(
+    (v) => (v === "" || v == null ? undefined : v),
+    z.enum(["Bajo", "Medio", "Alto"]).optional()
+  ),
 });
 
 function readForm(fd: FormData) {
@@ -26,6 +30,7 @@ function readForm(fd: FormData) {
     fecha: fd.get("fecha"),
     instrumento: fd.get("instrumento"),
     resultado: fd.get("resultado"),
+    nivelRiesgo: fd.get("nivelRiesgo"),
   };
 }
 
@@ -56,6 +61,8 @@ export async function crearEvaluacionPsico(_prev: FormState, fd: FormData): Prom
 
   const beneficiario = await prisma.beneficiario.findUnique({ where: { id: d.beneficiarioId } });
   if (!beneficiario) return { fieldErrors: { beneficiarioId: "El beneficiario no existe." } };
+  if (beneficiario.estado !== "Activo")
+    return { fieldErrors: { beneficiarioId: "El beneficiario no está activo." } };
 
   const creada = await prisma.evaluacionPsicosocial.create({
     data: {
@@ -63,6 +70,7 @@ export async function crearEvaluacionPsico(_prev: FormState, fd: FormData): Prom
       fecha: toDate(d.fecha),
       instrumento: d.instrumento ?? null,
       resultado: d.resultado ?? null,
+      nivelRiesgo: d.nivelRiesgo ?? null,
       estado: "Registrada",
       createdById: Number(session.user.id),
     },
@@ -72,8 +80,20 @@ export async function crearEvaluacionPsico(_prev: FormState, fd: FormData): Prom
     accion: "crear",
     modulo: MOD,
     registroId: creada.id,
-    valorNuevo: { beneficiarioId: d.beneficiarioId, instrumento: d.instrumento, estado: "Registrada" },
+    valorNuevo: { beneficiarioId: d.beneficiarioId, instrumento: d.instrumento, nivelRiesgo: d.nivelRiesgo ?? null, estado: "Registrada" },
   });
+  if (d.nivelRiesgo === "Alto") {
+    await prisma.notificacion.create({
+      data: {
+        tipoEvento: "MOD-018-Riesgo-Alto",
+        canal: "Sistema",
+        destinatario: "Supervisor",
+        mensaje: `La evaluación psicosocial #${creada.id} del beneficiario #${d.beneficiarioId} (${beneficiario.nombre}) reportó nivel de riesgo Alto.`,
+        estadoEnvio: "Pendiente",
+        createdById: Number(session.user.id),
+      },
+    });
+  }
   revalidatePath("/psicosocial");
   redirect("/psicosocial");
 }

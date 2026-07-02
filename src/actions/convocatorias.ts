@@ -54,14 +54,19 @@ export async function crearConvocatoria(_prev: FormState, fd: FormData): Promise
   if (!parsed.success) return { fieldErrors: fieldErrorsOf(parsed.error) };
   const d = parsed.data;
 
+  const apertura = toDate(d.fechaApertura);
+  const cierre = toDate(d.fechaCierre);
+  if (apertura && cierre && cierre <= apertura)
+    return { fieldErrors: { fechaCierre: "La fecha de cierre debe ser posterior a la de apertura." } };
+
   const creada = await prisma.convocatoria.create({
     data: {
       nombre: d.nombre,
       tipo: d.tipo,
       descripcion: d.descripcion,
       cupos: d.cupos,
-      fechaApertura: toDate(d.fechaApertura),
-      fechaCierre: toDate(d.fechaCierre),
+      fechaApertura: apertura,
+      fechaCierre: cierre,
       estado: "Abierta",
       createdById: Number(session.user.id),
     },
@@ -97,6 +102,11 @@ export async function editarConvocatoria(_prev: FormState, fd: FormData): Promis
   if (!parsed.success) return { fieldErrors: fieldErrorsOf(parsed.error) };
   const d = parsed.data;
 
+  const apertura = toDate(d.fechaApertura);
+  const cierre = toDate(d.fechaCierre);
+  if (apertura && cierre && cierre <= apertura)
+    return { fieldErrors: { fechaCierre: "La fecha de cierre debe ser posterior a la de apertura." } };
+
   await prisma.convocatoria.update({
     where: { id },
     data: {
@@ -104,8 +114,8 @@ export async function editarConvocatoria(_prev: FormState, fd: FormData): Promis
       tipo: d.tipo,
       descripcion: d.descripcion,
       cupos: d.cupos,
-      fechaApertura: toDate(d.fechaApertura),
-      fechaCierre: toDate(d.fechaCierre),
+      fechaApertura: apertura,
+      fechaCierre: cierre,
     },
   });
   await writeAudit({ usuarioId: Number(session.user.id), accion: "editar", modulo: MOD, registroId: id, valorNuevo: { nombre: d.nombre, cupos: d.cupos } });
@@ -123,6 +133,10 @@ export async function proponerBeneficiario(fd: FormData): Promise<void> {
   const convocatoriaId = Number(fd.get("convocatoriaId"));
   const beneficiarioId = Number(fd.get("beneficiarioId"));
   if (!convocatoriaId || !beneficiarioId) redirect(`/convocatorias/${convocatoriaId}`);
+
+  const beneficiario = await prisma.beneficiario.findUnique({ where: { id: beneficiarioId } });
+  if (!beneficiario || beneficiario.estado !== "Activo")
+    throw new Error("El beneficiario propuesto no existe o no está Activo.");
 
   const ya = await prisma.seleccionBeneficiario.findUnique({
     where: { convocatoriaId_beneficiarioId: { convocatoriaId, beneficiarioId } },
@@ -146,7 +160,8 @@ export async function aprobarSeleccion(fd: FormData): Promise<void> {
 
   const seleccionId = Number(fd.get("seleccionId"));
   const sel = await prisma.seleccionBeneficiario.findUnique({ where: { id: seleccionId }, include: { convocatoria: true } });
-  if (!sel || sel.estado !== "Propuesto") redirect(`/convocatorias/${sel?.convocatoriaId ?? ""}`);
+  if (!sel) redirect("/convocatorias");
+  if (sel.estado !== "Propuesto") redirect(`/convocatorias/${sel.convocatoriaId}`);
   if (sel.propuestoById && sel.propuestoById === Number(session.user.id))
     throw new Error("Segregación (RN-027): no puedes aprobar una selección que tú mismo propusiste.");
 
@@ -177,7 +192,8 @@ export async function rechazarSeleccion(fd: FormData): Promise<void> {
 
   const seleccionId = Number(fd.get("seleccionId"));
   const sel = await prisma.seleccionBeneficiario.findUnique({ where: { id: seleccionId } });
-  if (!sel || sel.estado !== "Propuesto") redirect(`/convocatorias/${sel?.convocatoriaId ?? ""}`);
+  if (!sel) redirect("/convocatorias");
+  if (sel.estado !== "Propuesto") redirect(`/convocatorias/${sel.convocatoriaId}`);
 
   await prisma.seleccionBeneficiario.update({ where: { id: seleccionId }, data: { estado: "Rechazado", aprobadoById: Number(session.user.id) } });
   await writeAudit({ usuarioId: Number(session.user.id), accion: "rechazar", modulo: MOD, registroId: sel.convocatoriaId, valorNuevo: { seleccionId, estado: "Rechazado" } });

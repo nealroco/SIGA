@@ -29,7 +29,7 @@ export default async function InventariosPage({ searchParams }: { searchParams: 
     ];
   }
 
-  const items = await prisma.item.findMany({ where, orderBy: { createdAt: "desc" } });
+  const items = await prisma.item.findMany({ where, orderBy: { createdAt: "desc" }, take: 200 });
 
   return (
     <div>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -10,6 +10,10 @@ import MapaUbicacion from "@/components/maps/MapaUbicacion";
 export const dynamic = "force-dynamic";
 
 export default async function BeneficiarioDetallePage({ params }: { params: Promise<{ id: string }> }) {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+  if (!(await can(session.user.rol, "MOD-001", "ver"))) redirect("/beneficiarios");
+
   const { id } = await params;
   const beneficiarioId = Number(id);
   if (!beneficiarioId) notFound();
@@ -20,9 +24,8 @@ export default async function BeneficiarioDetallePage({ params }: { params: Prom
   });
   if (!b) notFound();
 
-  const session = await auth();
-  const puedeEditar = session ? await can(session.user.rol, "MOD-001", "editar") : false;
-  const puedeBaja = session ? await can(session.user.rol, "MOD-001", "eliminar") : false;
+  const puedeEditar = await can(session.user.rol, "MOD-001", "editar");
+  const puedeBaja = await can(session.user.rol, "MOD-001", "eliminar");
   const territorios = await prisma.territorio.findMany({ where: { estado: "Activo" }, orderBy: { municipio: "asc" } });
 
   return (

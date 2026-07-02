@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -18,7 +18,9 @@ export default async function GeoreferenciacionDetallePage({
   if (!entidadId || (tipo !== "Territorio" && tipo !== "Escenario")) notFound();
 
   const session = await auth();
-  const rol = session!.user.rol;
+  if (!session?.user) redirect("/login");
+  const rol = session.user.rol;
+  if (!(await can(rol, "MOD-024", "ver"))) redirect("/dashboard");
   const puedeEditar = await can(rol, "MOD-024", "editar");
 
   let nombre: string;

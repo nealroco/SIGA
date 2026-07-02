@@ -12,8 +12,16 @@ export default async function NuevaEntregaPage() {
   const puedeCrear = session
     ? (await can(session.user.rol, "MOD-013", "crear")) || (await can(session.user.rol, "MOD-013", "cargar"))
     : false;
-  const beneficiarios = await prisma.beneficiario.findMany({ where: { estado: "Activo" }, orderBy: { nombre: "asc" } });
-  const items = await prisma.item.findMany({ where: { estado: "Activo" }, orderBy: { nombre: "asc" } });
+  const beneficiarios = await prisma.beneficiario.findMany({
+    where: { estado: "Activo" },
+    orderBy: { nombre: "asc" },
+    select: { id: true, nombre: true, documento: true },
+  });
+  const items = await prisma.item.findMany({
+    where: { estado: "Activo" },
+    orderBy: { nombre: "asc" },
+    select: { id: true, codigo: true, nombre: true, cantidad: true },
+  });
 
   return (
     <div>

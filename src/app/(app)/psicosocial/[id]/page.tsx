@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -15,14 +15,17 @@ export default async function EvaluacionPsicoDetallePage({ params }: { params: P
   const evaluacionId = Number(id);
   if (!evaluacionId) notFound();
 
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+  if (!(await can(session.user.rol, "MOD-018", "ver"))) redirect("/dashboard");
+  const rol = session.user.rol;
+
   const e = await prisma.evaluacionPsicosocial.findUnique({
     where: { id: evaluacionId },
     include: { beneficiario: true, createdBy: true },
   });
   if (!e) notFound();
 
-  const session = await auth();
-  const rol = session!.user.rol;
   const puedeEditar = await can(rol, "MOD-018", "editar");
   const puedeRevisar = puedeEditar && e.estado === "Registrada";
 
@@ -45,6 +48,7 @@ export default async function EvaluacionPsicoDetallePage({ params }: { params: P
           <div><b>Fecha:</b> {fmt(e.fecha)}</div>
           <div><b>Instrumento:</b> {e.instrumento ?? "—"}</div>
           <div><b>Resultado:</b> {e.resultado ?? "—"}</div>
+          <div><b>Nivel de riesgo:</b> {e.nivelRiesgo ?? "—"}</div>
           <div><b>Observación:</b> {e.observacion ?? "—"}</div>
           <div><b>Registrado por:</b> {e.createdBy?.nombre ?? "—"}</div>
         </div>

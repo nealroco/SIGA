@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -7,10 +8,20 @@ export const dynamic = "force-dynamic";
 
 export default async function GeoreferenciacionPage() {
   const session = await auth();
-  const puedeEditar = session ? await can(session.user.rol, "MOD-024", "editar") : false;
+  if (!session?.user) redirect("/login");
+  if (!(await can(session.user.rol, "MOD-024", "ver"))) redirect("/dashboard");
+  const puedeEditar = await can(session.user.rol, "MOD-024", "editar");
 
-  const territorios = await prisma.territorio.findMany({ orderBy: { codigo: "asc" } });
-  const escenarios = await prisma.escenario.findMany({ orderBy: { nombre: "asc" } });
+  const territorios = await prisma.territorio.findMany({
+    orderBy: { codigo: "asc" },
+    take: 200,
+    select: { id: true, codigo: true, municipio: true, lat: true, lng: true },
+  });
+  const escenarios = await prisma.escenario.findMany({
+    orderBy: { nombre: "asc" },
+    take: 200,
+    select: { id: true, nombre: true, tipo: true, lat: true, lng: true },
+  });
 
   return (
     <div>

@@ -49,8 +49,10 @@ export async function crearDocumento(_prev: FormState, fd: FormData): Promise<Fo
   if (!parsed.success) return { fieldErrors: fieldErrorsOf(parsed.error) };
   const d = parsed.data;
 
+  // RN-017: el documento solo puede radicarse contra un contrato Aprobado (mismo patrón que financiera.ts).
   const contrato = await prisma.contrato.findUnique({ where: { id: d.contratoId } });
-  if (!contrato) return { fieldErrors: { contratoId: "El contrato no existe." } };
+  if (!contrato || contrato.estado !== "Aprobado")
+    return { fieldErrors: { contratoId: "El contrato debe estar Aprobado para registrar documentos." } };
 
   const creado = await prisma.documento.create({
     data: {

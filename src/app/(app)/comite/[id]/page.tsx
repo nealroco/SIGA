@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -16,14 +16,27 @@ export default async function ActaDetallePage({ params }: { params: Promise<{ id
   const actaId = Number(id);
   if (!actaId) notFound();
 
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+  if (!(await can(session.user.rol, "MOD-015", "ver"))) redirect("/dashboard");
+
   const a = await prisma.actaComite.findUnique({
     where: { id: actaId },
-    include: { createdBy: true, aprobadoBy: true },
+    select: {
+      id: true,
+      fecha: true,
+      tema: true,
+      decision: true,
+      estado: true,
+      motivoRechazo: true,
+      aprobadoEn: true,
+      createdBy: { select: { nombre: true } },
+      aprobadoBy: { select: { nombre: true } },
+    },
   });
   if (!a) notFound();
 
-  const session = await auth();
-  const rol = session!.user.rol;
+  const rol = session.user.rol;
   const editable = a.estado === "Registrada" || a.estado === "Rechazada";
   const puedeEditar = (await can(rol, "MOD-015", "editar")) && editable;
   const puedeAprobar = (await can(rol, "MOD-015", "aprobar")) && a.estado === "Registrada";

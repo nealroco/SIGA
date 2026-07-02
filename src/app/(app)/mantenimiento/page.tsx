@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
+import { iniciarMantenimiento } from "@/actions/mantenimiento";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -19,12 +20,27 @@ export default async function MantenimientoPage({ searchParams }: { searchParams
   const sp = await searchParams;
   const session = await auth();
   const puedeCrear = session ? await can(session.user.rol, "MOD-023", "crear") : false;
+  const puedeEditar = session ? await can(session.user.rol, "MOD-023", "editar") : false;
 
   const estado = sp.estado ?? "";
   const where: Prisma.MantenimientoWhereInput = {};
   if (["Programado", "En curso", "Cerrado"].includes(estado)) where.estado = estado;
 
-  const items = await prisma.mantenimiento.findMany({ where, orderBy: { createdAt: "desc" }, include: { escenario: true } });
+  const items = await prisma.mantenimiento.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    take: 200,
+    select: {
+      id: true,
+      tipo: true,
+      fechaInicio: true,
+      fechaFin: true,
+      costo: true,
+      estado: true,
+      cerradoATiempo: true,
+      escenario: { select: { nombre: true } },
+    },
+  });
 
   return (
     <div>
@@ -82,7 +98,15 @@ export default async function MantenimientoPage({ searchParams }: { searchParams
                       ? (m.cerradoATiempo ? <span title="Cerrado a tiempo">✓</span> : <span title="Cerrado fuera de tiempo">✗</span>)
                       : "—"}
                   </td>
-                  <td><Link href={`/mantenimiento/${m.id}`} className="btn btn-sm">Abrir</Link></td>
+                  <td style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    <Link href={`/mantenimiento/${m.id}`} className="btn btn-sm">Abrir</Link>
+                    {puedeEditar && m.estado === "Programado" && (
+                      <form action={iniciarMantenimiento}>
+                        <input type="hidden" name="id" value={m.id} />
+                        <button className="btn btn-sm btn-blue" type="submit">Iniciar</button>
+                      </form>
+                    )}
+                  </td>
                 </tr>
               ))
             )}

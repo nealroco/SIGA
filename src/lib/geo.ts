@@ -37,19 +37,25 @@ export async function beneficiariosPorTerritorio(): Promise<PuntoGeo[]> {
  * Contratos sin territorio asignado no aportan a este mapa (no se inventa una ubicación).
  */
 export async function inversionPorTerritorio(): Promise<PuntoGeo[]> {
-  const [cuentas, territorios] = await Promise.all([
-    prisma.cuentaCobro.findMany({
+  const [porContrato, territorios] = await Promise.all([
+    prisma.cuentaCobro.groupBy({
+      by: ["contratoId"],
+      _sum: { valorAprobado: true },
       where: { estado: { in: ["Aprobada", "Pagada"] } },
-      select: { valorAprobado: true, contrato: { select: { territorioId: true } } },
     }),
     territoriosConCoordenadas(),
   ]);
+  const contratos = await prisma.contrato.findMany({
+    where: { id: { in: porContrato.map((c) => c.contratoId) } },
+    select: { id: true, territorioId: true },
+  });
+  const territorioPorContrato = new Map(contratos.map((c) => [c.id, c.territorioId]));
   const porId = new Map(territorios.map((t) => [t.id, t]));
   const totales = new Map<number, number>();
-  for (const c of cuentas) {
-    const tId = c.contrato.territorioId;
+  for (const c of porContrato) {
+    const tId = territorioPorContrato.get(c.contratoId);
     if (tId == null) continue;
-    totales.set(tId, (totales.get(tId) ?? 0) + (c.valorAprobado ?? 0));
+    totales.set(tId, (totales.get(tId) ?? 0) + (c._sum.valorAprobado ?? 0));
   }
   return Array.from(totales.entries())
     .map(([territorioId, valor]) => {

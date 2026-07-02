@@ -28,7 +28,7 @@ export default async function ImpactoPage({
   const periodo = sp.periodo ?? "";
 
   const [items, periodosDisponibles] = await Promise.all([
-    prisma.analisisImpacto.findMany({ where: periodo ? { periodo } : {}, orderBy: { createdAt: "desc" } }),
+    prisma.analisisImpacto.findMany({ where: periodo ? { periodo } : {}, orderBy: { createdAt: "desc" }, take: 200 }),
     prisma.analisisImpacto.findMany({ distinct: ["periodo"], select: { periodo: true }, orderBy: { periodo: "desc" } }),
   ]);
   const ultimo = items[0];

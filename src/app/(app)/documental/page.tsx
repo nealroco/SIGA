@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -18,10 +19,12 @@ const ESTADO_BADGE: Record<string, string> = {
 };
 
 export default async function DocumentalPage({ searchParams }: { searchParams: Promise<{ estado?: string }> }) {
-  const sp = await searchParams;
   const session = await auth();
-  const puedeCrear = session ? await can(session.user.rol, "MOD-005", "editar") : false;
+  if (!session?.user) redirect("/login");
+  if (!(await can(session.user.rol, "MOD-005", "ver"))) redirect("/dashboard");
+  const puedeCrear = await can(session.user.rol, "MOD-005", "editar");
 
+  const sp = await searchParams;
   const estado = sp.estado ?? "";
   const where: Prisma.DocumentoWhereInput = {};
   if (ESTADOS.includes(estado)) where.estado = estado;
@@ -29,6 +32,7 @@ export default async function DocumentalPage({ searchParams }: { searchParams: P
   const items = await prisma.documento.findMany({
     where,
     orderBy: { createdAt: "desc" },
+    take: 200,
     include: { contrato: true, _count: { select: { versiones: true } } },
   });
 

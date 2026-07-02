@@ -104,7 +104,7 @@ export async function editarLote(_prev: FormState, fd: FormData): Promise<FormSt
 // Baja lógica: pasa a estado Inactivo, nunca se elimina el registro físicamente.
 export async function darDeBajaLote(fd: FormData): Promise<void> {
   const session = await auth();
-  if (!session?.user) return;
+  if (!session?.user) throw new Error("Sesión expirada.");
   if (!(await can(session.user.rol, MOD, "eliminar"))) {
     throw new Error(`No autorizado: dar de baja lotes requiere escritura (E) en MOD-017. Tu rol es ${session.user.rol}.`);
   }

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/db";
 
 export type Nivel = "E" | "A" | "L" | "C" | "NONE";
@@ -13,8 +14,9 @@ const REQUISITO: Record<Accion, Nivel[]> = {
   cargar: ["E", "C"], // carga de archivos/versiones (p. ej. MOD-005 Documental)
 };
 
-/** Mapa codigo_modulo -> nivel para un rol. */
-export async function getPermisos(rolNombre: string): Promise<Map<string, Nivel>> {
+/** Mapa codigo_modulo -> nivel para un rol. Memoizado por request (React.cache) para
+ *  deduplicar la misma consulta cuando varias páginas/llamadas a can() piden el mismo rol. */
+export const getPermisos = cache(async function getPermisos(rolNombre: string): Promise<Map<string, Nivel>> {
   const rol = await prisma.rol.findUnique({
     where: { nombre: rolNombre },
     include: { permisos: { include: { modulo: true } } },
@@ -23,7 +25,7 @@ export async function getPermisos(rolNombre: string): Promise<Map<string, Nivel>
   if (!rol) return map;
   for (const p of rol.permisos) map.set(p.modulo.codigo, p.nivel as Nivel);
   return map;
-}
+});
 
 /** ¿Puede el rol ejecutar `accion` sobre `moduloCodigo`? */
 export async function can(rolNombre: string, moduloCodigo: string, accion: Accion): Promise<boolean> {

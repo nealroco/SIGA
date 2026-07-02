@@ -13,6 +13,7 @@ export default async function NuevaEvaluacionPsicoPage() {
   const beneficiarios = await prisma.beneficiario.findMany({
     where: { estado: "Activo" },
     orderBy: { nombre: "asc" },
+    select: { id: true, nombre: true, documento: true },
   });
 
   return (

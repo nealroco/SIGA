@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -15,7 +16,9 @@ const ESTADO_BADGE: Record<string, string> = {
 export default async function EvaluacionEsalPage({ searchParams }: { searchParams: Promise<{ estado?: string }> }) {
   const sp = await searchParams;
   const session = await auth();
-  const puedeCrear = session ? await can(session.user.rol, "MOD-009", "crear") : false;
+  if (!session?.user) redirect("/login");
+  if (!(await can(session.user.rol, "MOD-009", "ver"))) redirect("/dashboard");
+  const puedeCrear = await can(session.user.rol, "MOD-009", "crear");
 
   const estado = sp.estado ?? "";
   const where: Prisma.EvaluacionEsalWhereInput = {};
@@ -24,7 +27,15 @@ export default async function EvaluacionEsalPage({ searchParams }: { searchParam
   const items = await prisma.evaluacionEsal.findMany({
     where,
     orderBy: { createdAt: "desc" },
-    include: { tercero: true, convocatoria: true },
+    take: 200,
+    select: {
+      id: true,
+      criterio: true,
+      puntaje: true,
+      estado: true,
+      tercero: { select: { razonSocial: true } },
+      convocatoria: { select: { nombre: true } },
+    },
   });
 
   return (

@@ -25,7 +25,7 @@ export default async function PolizasPage({ searchParams }: { searchParams: Prom
   const where: Prisma.PolizaWhereInput = {};
   if (["Registrada", "Aprobada", "Rechazada"].includes(estado)) where.estado = estado;
 
-  const items = await prisma.poliza.findMany({ where, orderBy: { createdAt: "desc" }, include: { contrato: true } });
+  const items = await prisma.poliza.findMany({ where, orderBy: { createdAt: "desc" }, include: { contrato: true }, take: 200 });
   const hoy = new Date();
 
   return (

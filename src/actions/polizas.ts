@@ -174,6 +174,8 @@ export async function rechazarPoliza(fd: FormData): Promise<void> {
   if (!p || p.estado !== "Registrada") {
     redirect(`/polizas/${id}`);
   }
+  if (p.createdById && p.createdById === Number(session.user.id))
+    throw new Error("Segregación de funciones (RN-025): no puedes rechazar lo que tú registraste.");
 
   await prisma.poliza.update({ where: { id }, data: { estado: "Rechazada", motivoRechazo: motivo } });
   await writeAudit({ usuarioId: Number(session.user.id), accion: "rechazar", modulo: MOD, registroId: id, valorNuevo: { estado: "Rechazada", motivo } });

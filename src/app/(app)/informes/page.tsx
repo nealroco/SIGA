@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -14,15 +15,22 @@ const ESTADO_BADGE: Record<string, string> = {
 };
 
 export default async function InformesPage({ searchParams }: { searchParams: Promise<{ estado?: string }> }) {
-  const sp = await searchParams;
   const session = await auth();
-  const puedeCrear = session ? await can(session.user.rol, "MOD-006", "editar") : false;
+  if (!session?.user) redirect("/login");
+  if (!(await can(session.user.rol, "MOD-006", "ver"))) redirect("/dashboard");
+  const puedeCrear = await can(session.user.rol, "MOD-006", "editar");
 
+  const sp = await searchParams;
   const estado = sp.estado ?? "";
   const where: Prisma.InformeWhereInput = {};
   if (["Radicado", "Aprobado", "Devuelto", "Con observaciones"].includes(estado)) where.estado = estado;
 
-  const items = await prisma.informe.findMany({ where, orderBy: { createdAt: "desc" }, include: { contrato: true } });
+  const items = await prisma.informe.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    take: 200,
+    include: { contrato: true },
+  });
 
   return (
     <div>

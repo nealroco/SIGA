@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -23,6 +23,10 @@ const ESTADO_BADGE: Record<string, string> = {
 const fmt = (d: Date | null) => (d ? new Date(d).toLocaleDateString("es-CO") : "—");
 
 export default async function InformeDetallePage({ params }: { params: Promise<{ id: string }> }) {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+  if (!(await can(session.user.rol, "MOD-006", "ver"))) redirect("/dashboard");
+
   const { id } = await params;
   const informeId = Number(id);
   if (!informeId) notFound();
@@ -33,8 +37,7 @@ export default async function InformeDetallePage({ params }: { params: Promise<{
   });
   if (!i) notFound();
 
-  const session = await auth();
-  const rol = session!.user.rol;
+  const rol = session.user.rol;
   // MOD-006: las transiciones de estado las hace quien tiene E (no hay nivel A en la matriz).
   const puedeEditar = await can(rol, "MOD-006", "editar");
   const contratos = await prisma.contrato.findMany({

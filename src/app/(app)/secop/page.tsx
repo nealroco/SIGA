@@ -22,7 +22,7 @@ export default async function SecopPage({ searchParams }: { searchParams: Promis
   const where: Prisma.RegistroSecopWhereInput = {};
   if (["Registrado", "Aprobado", "Rechazado", "Sincronizado"].includes(estado)) where.estadoSync = estado;
 
-  const items = await prisma.registroSecop.findMany({ where, orderBy: { createdAt: "desc" }, include: { contrato: true } });
+  const items = await prisma.registroSecop.findMany({ where, orderBy: { createdAt: "desc" }, include: { contrato: true }, take: 200 });
 
   return (
     <div>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -11,9 +12,12 @@ export default async function PersonalPage({
 }: {
   searchParams: Promise<{ q?: string; estado?: string }>;
 }) {
-  const sp = await searchParams;
   const session = await auth();
-  const puedeCrear = session ? await can(session.user.rol, "MOD-002", "crear") : false;
+  if (!session?.user) redirect("/login");
+  if (!(await can(session.user.rol, "MOD-002", "ver"))) redirect("/dashboard");
+
+  const sp = await searchParams;
+  const puedeCrear = await can(session.user.rol, "MOD-002", "crear");
 
   const q = (sp.q ?? "").trim();
   const estado = sp.estado ?? "";
@@ -24,7 +28,7 @@ export default async function PersonalPage({
   }
   if (estado === "Activo" || estado === "Inactivo") where.estado = estado;
 
-  const items = await prisma.personal.findMany({ where, orderBy: { createdAt: "desc" } });
+  const items = await prisma.personal.findMany({ where, orderBy: { createdAt: "desc" }, take: 200 });
 
   return (
     <div>

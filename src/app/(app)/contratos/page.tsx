@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -18,13 +19,27 @@ const ESTADO_BADGE: Record<string, string> = {
 export default async function ContratosPage({ searchParams }: { searchParams: Promise<{ estado?: string }> }) {
   const sp = await searchParams;
   const session = await auth();
-  const puedeCrear = session ? await can(session.user.rol, "MOD-010", "crear") : false;
+  if (!session?.user) redirect("/login");
+  if (!(await can(session.user.rol, "MOD-010", "ver"))) redirect("/dashboard");
+  const puedeCrear = await can(session.user.rol, "MOD-010", "crear");
 
   const estado = sp.estado ?? "";
   const where: Prisma.ContratoWhereInput = {};
   if (["Registrado", "Aprobado", "Rechazado", "Cerrado"].includes(estado)) where.estado = estado;
 
-  const items = await prisma.contrato.findMany({ where, orderBy: { createdAt: "desc" }, include: { tercero: true } });
+  const items = await prisma.contrato.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    take: 200,
+    select: {
+      id: true,
+      numero: true,
+      objeto: true,
+      valorTotal: true,
+      estado: true,
+      tercero: { select: { razonSocial: true } },
+    },
+  });
 
   return (
     <div>

@@ -18,11 +18,18 @@ export default async function IndicadoresPage() {
 
   const indicadores = await prisma.indicadorFisico.findMany({
     orderBy: { createdAt: "desc" },
-    include: { avances: { where: { estado: "Aprobado" } } },
+    take: 200,
   });
 
+  const acumulados = await prisma.avanceMeta.groupBy({
+    by: ["indicadorId"],
+    where: { estado: "Aprobado", indicadorId: { in: indicadores.map((i) => i.id) } },
+    _sum: { cantidadAprobada: true },
+  });
+  const acumuladoPorIndicador = new Map(acumulados.map((a) => [a.indicadorId, a._sum.cantidadAprobada ?? 0]));
+
   const filas = indicadores.map((i) => {
-    const acumulado = i.avances.reduce((acc, a) => acc + (a.cantidadAprobada ?? 0), 0);
+    const acumulado = acumuladoPorIndicador.get(i.id) ?? 0;
     const pct = i.programado > 0 ? Math.round((acumulado / i.programado) * 100) : 0;
     return { ...i, acumulado, pct };
   });

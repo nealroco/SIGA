@@ -69,6 +69,7 @@ export async function crearMantenimiento(_prev: FormState, fd: FormData): Promis
 
   const escenario = await prisma.escenario.findUnique({ where: { id: d.escenarioId } });
   if (!escenario) return { fieldErrors: { escenarioId: "El escenario no existe." } };
+  if (escenario.estado !== "Activo") return { fieldErrors: { escenarioId: "El escenario no está activo." } };
 
   const creado = await prisma.mantenimiento.create({
     data: {
@@ -109,6 +110,7 @@ export async function editarMantenimiento(_prev: FormState, fd: FormData): Promi
 
   const escenario = await prisma.escenario.findUnique({ where: { id: d.escenarioId } });
   if (!escenario) return { fieldErrors: { escenarioId: "El escenario no existe." } };
+  if (escenario.estado !== "Activo") return { fieldErrors: { escenarioId: "El escenario no está activo." } };
 
   await prisma.mantenimiento.update({
     where: { id },
@@ -124,6 +126,28 @@ export async function editarMantenimiento(_prev: FormState, fd: FormData): Promi
   await writeAudit({ usuarioId: Number(session.user.id), accion: "editar", modulo: MOD, registroId: id, valorNuevo: { escenarioId: d.escenarioId, tipo: d.tipo, costo: d.costo } });
   revalidatePath("/mantenimiento");
   redirect(`/mantenimiento/${id}`);
+}
+
+// RN-024: sin esta transición, ningún mantenimiento llega nunca a "En curso" y el
+// bloqueo de reservas contra mantenimiento activo (src/actions/reservas.ts) queda inerte.
+export async function iniciarMantenimiento(fd: FormData): Promise<void> {
+  const session = await auth();
+  if (!session?.user) throw new Error("Sesión expirada.");
+  if (!(await can(session.user.rol, MOD, "editar")))
+    throw new Error(`No autorizado: iniciar mantenimientos requiere escritura (E) en MOD-023. Tu rol es ${session.user.rol}.`);
+
+  const id = Number(fd.get("id"));
+  const mant = await prisma.mantenimiento.findUnique({ where: { id } });
+  if (!mant) throw new Error("El mantenimiento no existe.");
+  if (mant.estado !== "Programado") throw new Error("Solo un mantenimiento Programado puede pasar a En curso.");
+
+  await prisma.mantenimiento.update({
+    where: { id },
+    data: { estado: "En curso" },
+  });
+  await writeAudit({ usuarioId: Number(session.user.id), accion: "iniciar", modulo: MOD, registroId: id, valorAnterior: { estado: mant.estado }, valorNuevo: { estado: "En curso" } });
+  revalidatePath("/mantenimiento");
+  redirect("/mantenimiento");
 }
 
 // KPI-029b "mantenimientos a tiempo": el campo cerradoATiempo se fija al cerrar el

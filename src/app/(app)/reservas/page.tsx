@@ -23,7 +23,15 @@ export default async function ReservasPage() {
 
   const items = await prisma.reservaEscenario.findMany({
     orderBy: { fechaInicio: "desc" },
-    include: { escenario: true },
+    take: 200,
+    select: {
+      id: true,
+      tipoUso: true,
+      fechaInicio: true,
+      fechaFin: true,
+      estado: true,
+      escenario: { select: { nombre: true } },
+    },
   });
 
   return (

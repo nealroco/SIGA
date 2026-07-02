@@ -10,6 +10,7 @@ type Values = {
   fecha?: string | null;
   instrumento?: string | null;
   resultado?: string | null;
+  nivelRiesgo?: string | null;
 };
 
 type Beneficiario = { id: number; nombre: string; documento: string };
@@ -60,6 +61,17 @@ export default function PsicosocialForm({
         <label htmlFor="resultado">Resultado</label>
         <input id="resultado" name="resultado" className="input" defaultValue={values.resultado ?? ""} />
         {fe.resultado && <span className="err">{fe.resultado}</span>}
+      </div>
+
+      <div className="field">
+        <label htmlFor="nivelRiesgo">Nivel de riesgo</label>
+        <select id="nivelRiesgo" name="nivelRiesgo" className="select" defaultValue={values.nivelRiesgo ?? ""}>
+          <option value="">Sin definir</option>
+          <option value="Bajo">Bajo</option>
+          <option value="Medio">Medio</option>
+          <option value="Alto">Alto</option>
+        </select>
+        {fe.nivelRiesgo && <span className="err">{fe.nivelRiesgo}</span>}
       </div>
 
       <div style={{ display: "flex", gap: 12, marginTop: 8 }}>

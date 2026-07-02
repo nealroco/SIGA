@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -15,7 +16,9 @@ export default async function TerritoriosPage({
 }) {
   const sp = await searchParams;
   const session = await auth();
-  const puedeCrear = session ? await can(session.user.rol, "MOD-012", "crear") : false;
+  if (!session?.user) redirect("/login");
+  if (!(await can(session.user.rol, "MOD-012", "ver"))) redirect("/dashboard");
+  const puedeCrear = await can(session.user.rol, "MOD-012", "crear");
 
   const q = (sp.q ?? "").trim();
   const estado = sp.estado ?? "";
@@ -26,7 +29,7 @@ export default async function TerritoriosPage({
   }
   if (estado === "Activo" || estado === "Inactivo") where.estado = estado;
 
-  const items = await prisma.territorio.findMany({ where, orderBy: { createdAt: "desc" } });
+  const items = await prisma.territorio.findMany({ where, orderBy: { createdAt: "desc" }, take: 200 });
   const [poblacion, inversion, escenarios, presenciaPrograma] = await Promise.all([
     beneficiariosPorTerritorio(),
     inversionPorTerritorio(),

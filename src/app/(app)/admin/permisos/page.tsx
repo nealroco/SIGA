@@ -1,10 +1,16 @@
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { NIVEL_ICONO } from "@/lib/iconos";
-import type { Nivel } from "@/lib/permissions";
+import { can, type Nivel } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
 export default async function PermisosPage() {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+  if (!(await can(session.user.rol, "MOD-028", "ver"))) redirect("/dashboard");
+
   const [roles, modulos, permisos] = await Promise.all([
     prisma.rol.findMany({ orderBy: { id: "asc" } }),
     prisma.modulo.findMany({ orderBy: { codigo: "asc" } }),

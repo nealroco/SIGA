@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -15,7 +16,9 @@ const ESTADO_BADGE: Record<string, string> = {
 
 export default async function ConvocatoriasPage() {
   const session = await auth();
-  const puedeCrear = session ? await can(session.user.rol, "MOD-008", "crear") : false;
+  if (!session?.user) redirect("/login");
+  if (!(await can(session.user.rol, "MOD-008", "ver"))) redirect("/dashboard");
+  const puedeCrear = await can(session.user.rol, "MOD-008", "crear");
 
   const items = await prisma.convocatoria.findMany({
     orderBy: { createdAt: "desc" },

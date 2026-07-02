@@ -112,6 +112,8 @@ export async function rechazarRegistroSecop(fd: FormData): Promise<void> {
   if (!r || r.estadoSync !== "Registrado") {
     redirect(`/secop/${id}`);
   }
+  if (r.createdById && r.createdById === Number(session.user.id))
+    throw new Error("Segregación de funciones (RN-025): no puedes aprobar lo que tú registraste.");
 
   await prisma.registroSecop.update({ where: { id }, data: { estadoSync: "Rechazado", motivoRechazo: motivo } });
   await writeAudit({ usuarioId: Number(session.user.id), accion: "rechazar", modulo: MOD, registroId: id, valorNuevo: { estadoSync: "Rechazado", motivo } });

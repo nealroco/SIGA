@@ -52,15 +52,20 @@ export async function crearEntrega(_prev: FormState, fd: FormData): Promise<Form
 
   const beneficiario = await prisma.beneficiario.findUnique({ where: { id: d.beneficiarioId } });
   if (!beneficiario) return { fieldErrors: { beneficiarioId: "El beneficiario no existe." } };
+  if (beneficiario.estado !== "Activo") return { fieldErrors: { beneficiarioId: "El beneficiario no está activo." } };
 
   const item = await prisma.item.findUnique({ where: { id: d.itemId } });
   if (!item) return { fieldErrors: { itemId: "El ítem no existe." } };
-
-  // Verifica stock disponible antes de entregar.
-  if (item.cantidad < d.cantidad) return { error: "Sin stock suficiente." };
+  if (item.estado !== "Activo") return { fieldErrors: { itemId: "El ítem no está activo." } };
 
   const creada = await prisma.$transaction(async (tx) => {
-    const entrega = await tx.dotacionEntrega.create({
+    const actualizado = await tx.item.updateMany({
+      where: { id: d.itemId, cantidad: { gte: d.cantidad } },
+      data: { cantidad: { decrement: d.cantidad } },
+    });
+    if (actualizado.count === 0) throw new Error("STOCK_INSUFICIENTE");
+
+    return tx.dotacionEntrega.create({
       data: {
         beneficiarioId: d.beneficiarioId,
         itemId: d.itemId,
@@ -69,12 +74,12 @@ export async function crearEntrega(_prev: FormState, fd: FormData): Promise<Form
         createdById: Number(session.user.id),
       },
     });
-    await tx.item.update({
-      where: { id: d.itemId },
-      data: { cantidad: { decrement: d.cantidad } },
-    });
-    return entrega;
+  }).catch((e) => {
+    if (e instanceof Error && e.message === "STOCK_INSUFICIENTE") return null;
+    throw e;
   });
+
+  if (!creada) return { error: "Sin stock suficiente." };
 
   await writeAudit({
     usuarioId: Number(session.user.id),

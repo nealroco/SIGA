@@ -55,6 +55,7 @@ export async function crearEvaluacion(_prev: FormState, fd: FormData): Promise<F
 
   const tercero = await prisma.tercero.findUnique({ where: { id: d.terceroId } });
   if (!tercero) return { fieldErrors: { terceroId: "El tercero seleccionado no existe." } };
+  if (tercero.estado !== "Activo") return { fieldErrors: { terceroId: "El tercero seleccionado no está Activo." } };
 
   if (d.convocatoriaId != null) {
     const convocatoria = await prisma.convocatoria.findUnique({ where: { id: d.convocatoriaId } });
@@ -163,7 +164,8 @@ export async function rechazarEvaluacion(fd: FormData): Promise<void> {
   const motivo = String(fd.get("motivo") ?? "").trim();
   if (!motivo) throw new Error("Debes indicar un motivo de rechazo.");
   const ev = await prisma.evaluacionEsal.findUnique({ where: { id } });
-  if (!ev || ev.estado !== "Registrada") {
+  if (!ev) throw new Error("La evaluación no existe.");
+  if (ev.estado !== "Registrada") {
     redirect(`/evaluacion-esal/${id}`);
   }
 

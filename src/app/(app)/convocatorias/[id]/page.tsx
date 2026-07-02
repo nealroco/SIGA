@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -11,6 +11,10 @@ const SEL_BADGE: Record<string, string> = { Propuesto: "A", Aprobado: "ok", Rech
 const fmt = (d: Date | null) => (d ? new Date(d).toLocaleDateString("es-CO") : "—");
 
 export default async function ConvocatoriaDetalle({ params }: { params: Promise<{ id: string }> }) {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+  if (!(await can(session.user.rol, "MOD-008", "ver"))) redirect("/dashboard");
+
   const { id } = await params;
   const convocatoriaId = Number(id);
   if (!convocatoriaId) notFound();
@@ -24,15 +28,19 @@ export default async function ConvocatoriaDetalle({ params }: { params: Promise<
   });
   if (!c) notFound();
 
-  const session = await auth();
-  const rol = session!.user.rol;
+  const rol = session.user.rol;
   const puedeSeleccionar = await can(rol, "MOD-008", "crear"); // Supervisor (E)
   const puedeAprobar = await can(rol, "MOD-008", "aprobar"); // Administrador (A)
   const puedeCerrar = puedeAprobar && c.estado !== "Cerrada";
 
-  const yaSeleccionados = new Set(c.selecciones.map((s) => s.beneficiarioId));
+  const yaSeleccionadosIds = c.selecciones.map((s) => s.beneficiarioId);
   const disponibles = puedeSeleccionar
-    ? (await prisma.beneficiario.findMany({ where: { estado: "Activo" }, orderBy: { nombre: "asc" } })).filter((b) => !yaSeleccionados.has(b.id))
+    ? await prisma.beneficiario.findMany({
+        where: { estado: "Activo", ...(yaSeleccionadosIds.length > 0 ? { id: { notIn: yaSeleccionadosIds } } : {}) },
+        select: { id: true, nombre: true, documento: true, programa: true },
+        orderBy: { nombre: "asc" },
+        take: 200,
+      })
     : [];
   const aprobados = c.selecciones.filter((s) => s.estado === "Aprobado").length;
 

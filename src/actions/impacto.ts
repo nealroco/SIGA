@@ -41,23 +41,29 @@ export async function generarAnalisis(_prev: FormState, fd: FormData): Promise<F
   if (!parsed.success) return { fieldErrors: fieldErrorsOf(parsed.error) };
   const d = parsed.data;
 
-  // Gasto ejecutado: SUMA de las órdenes de pago Aprobadas (las Ordenadas siguen pendientes; RN-025).
-  const pagos = await prisma.pago.findMany({ where: { estado: "Aprobado" }, select: { valorPagado: true } });
-  const gastoEjecutado = pagos.reduce((acc, p) => acc + p.valorPagado, 0);
-
-  // Ejecución financiera %: SUMA(pagos) / SUMA(cuentaCobro.valorAprobado de cuentas Aprobada o Pagada) * 100.
-  const cuentas = await prisma.cuentaCobro.findMany({
-    where: { estado: { in: ["Aprobada", "Pagada"] } },
-    select: { valorAprobado: true, valorCobrado: true },
+  // Gasto ejecutado: SUMA de las órdenes de pago Aprobadas del período (las Ordenadas siguen pendientes; RN-025).
+  const gastoAgg = await prisma.pago.aggregate({
+    where: { estado: "Aprobado", cuentaCobro: { periodo: d.periodo } },
+    _sum: { valorPagado: true },
   });
-  const totalAprobado = cuentas.reduce((acc, c) => acc + (c.valorAprobado ?? c.valorCobrado ?? 0), 0);
+  const gastoEjecutado = gastoAgg._sum.valorPagado ?? 0;
+
+  // Ejecución financiera %: SUMA(pagos) / SUMA(cuentaCobro.valorAprobado de cuentas Aprobada o Pagada) * 100, del período.
+  const cuentasAgg = await prisma.cuentaCobro.aggregate({
+    where: { estado: { in: ["Aprobada", "Pagada"] }, periodo: d.periodo },
+    _sum: { valorAprobado: true, valorCobrado: true },
+  });
+  const totalAprobado = cuentasAgg._sum.valorAprobado ?? cuentasAgg._sum.valorCobrado ?? 0;
   const ejecucionFinanciera = totalAprobado > 0 ? (gastoEjecutado / totalAprobado) * 100 : 0;
 
-  // Cumplimiento físico %: para cada indicador activo, SUMA(avances Aprobados.cantidadAprobada)/programado;
-  // se promedia ese % entre todos los indicadores activos.
+  // Cumplimiento físico %: para cada indicador activo del período, SUMA(avances Aprobados.cantidadAprobada)/programado;
+  // se promedia ese % entre todos los indicadores activos del período.
   const indicadores = await prisma.indicadorFisico.findMany({
-    where: { estado: "Activo" },
-    include: { avances: { where: { estado: "Aprobado" } } },
+    where: { estado: "Activo", periodo: d.periodo },
+    select: {
+      programado: true,
+      avances: { where: { estado: "Aprobado" }, select: { cantidadAprobada: true } },
+    },
   });
   let cumplimientoFisico = 0;
   if (indicadores.length > 0) {

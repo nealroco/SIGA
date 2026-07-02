@@ -162,6 +162,11 @@ export async function crearReserva(_prev: FormState, fd: FormData): Promise<Form
   if (!parsed.success) return { fieldErrors: fieldErrorsOf(parsed.error) };
   const d = parsed.data;
 
+  const escenario = await prisma.escenario.findUnique({ where: { id: d.escenarioId } });
+  if (!escenario) return { fieldErrors: { escenarioId: "El escenario seleccionado no existe." } };
+  if (escenario.estado !== "Activo")
+    return { fieldErrors: { escenarioId: "El escenario seleccionado no está activo." } };
+
   // RN-024: validación de fechas (traducción de validarReserva() del documento maestro)
   const ini = new Date(d.fechaInicio);
   const fin = new Date(d.fechaFin);

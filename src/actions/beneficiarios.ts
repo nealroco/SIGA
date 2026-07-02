@@ -315,7 +315,7 @@ export async function crearBeneficiario(_prev: FormState, fd: FormData): Promise
   if (!parsed.success) return { fieldErrors: fieldErrorsOf(parsed.error) };
   const { acudiente, contactoEmergencia, ...data } = parsed.data;
 
-  const dup = await prisma.beneficiario.findUnique({ where: { documento: data.documento } });
+  const dup = await prisma.beneficiario.findUnique({ where: { documento: data.documento }, select: { id: true } });
   if (dup) return { fieldErrors: { documento: "Ya existe un beneficiario con ese documento." } };
 
   const creado = await prisma.beneficiario.create({
@@ -332,7 +332,7 @@ export async function crearBeneficiario(_prev: FormState, fd: FormData): Promise
     accion: "crear",
     modulo: MOD,
     registroId: creado.id,
-    valorNuevo: parsed.data,
+    valorNuevo: { documento: data.documento, nombre: data.nombre, programa: data.programa, estado: "Activo" },
   });
 
   revalidatePath("/beneficiarios");
@@ -356,7 +356,7 @@ export async function editarBeneficiario(_prev: FormState, fd: FormData): Promis
   const anterior = await prisma.beneficiario.findUnique({ where: { id } });
   if (!anterior) return { error: "El beneficiario no existe." };
 
-  const dup = await prisma.beneficiario.findUnique({ where: { documento: data.documento } });
+  const dup = await prisma.beneficiario.findUnique({ where: { documento: data.documento }, select: { id: true } });
   if (dup && dup.id !== id) return { fieldErrors: { documento: "Otro beneficiario ya usa ese documento." } };
 
   await prisma.beneficiario.update({
@@ -384,7 +384,7 @@ export async function editarBeneficiario(_prev: FormState, fd: FormData): Promis
       edad: anterior.edad,
       programa: anterior.programa,
     },
-    valorNuevo: parsed.data,
+    valorNuevo: { documento: data.documento, nombre: data.nombre, edad: data.edad, programa: data.programa },
   });
 
   revalidatePath("/beneficiarios");

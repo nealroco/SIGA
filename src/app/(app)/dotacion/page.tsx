@@ -27,6 +27,7 @@ export default async function DotacionPage({ searchParams }: { searchParams: Pro
   const items = await prisma.dotacionEntrega.findMany({
     where,
     orderBy: { fechaEntrega: "desc" },
+    take: 200,
     include: { beneficiario: true, item: true },
   });
 

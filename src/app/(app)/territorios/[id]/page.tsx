@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -14,12 +14,15 @@ export default async function TerritorioDetallePage({ params }: { params: Promis
   const territorioId = Number(id);
   if (!territorioId) notFound();
 
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+  if (!(await can(session.user.rol, "MOD-012", "ver"))) redirect("/dashboard");
+
   const t = await prisma.territorio.findUnique({ where: { id: territorioId } });
   if (!t) notFound();
 
-  const session = await auth();
-  const puedeEditar = session ? await can(session.user.rol, "MOD-012", "editar") : false;
-  const puedeBaja = session ? await can(session.user.rol, "MOD-012", "eliminar") : false;
+  const puedeEditar = await can(session.user.rol, "MOD-012", "editar");
+  const puedeBaja = await can(session.user.rol, "MOD-012", "eliminar");
 
   return (
     <div>

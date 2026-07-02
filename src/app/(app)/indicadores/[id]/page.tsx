@@ -29,7 +29,10 @@ export default async function IndicadorDetallePage({ params }: { params: Promise
     include: {
       avances: {
         orderBy: { createdAt: "desc" },
-        include: { createdBy: true, aprobadoBy: true },
+        include: {
+          createdBy: { select: { id: true, nombre: true } },
+          aprobadoBy: { select: { id: true, nombre: true } },
+        },
       },
     },
   });

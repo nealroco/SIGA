@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -18,9 +19,11 @@ function truncar(s: string, n: number) {
 
 export default async function NotificacionesPage() {
   const session = await auth();
-  const rol = session?.user.rol ?? "";
-  const puedeCrear = session ? await can(rol, "MOD-021", "crear") : false;
-  const puedeEditar = session ? await can(rol, "MOD-021", "editar") : false;
+  if (!session?.user) redirect("/login");
+  const rol = session.user.rol;
+  if (!(await can(rol, "MOD-021", "ver"))) redirect("/dashboard");
+  const puedeCrear = await can(rol, "MOD-021", "crear");
+  const puedeEditar = await can(rol, "MOD-021", "editar");
 
   const items = await prisma.notificacion.findMany({ orderBy: { createdAt: "desc" }, take: 200 });
 

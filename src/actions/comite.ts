@@ -151,6 +151,8 @@ export async function rechazarActa(fd: FormData): Promise<void> {
   if (!acta || acta.estado !== "Registrada") {
     redirect(`/comite/${id}`);
   }
+  if (acta.createdById && acta.createdById === Number(session.user.id))
+    throw new Error("Segregación de funciones (RN-025): no puedes rechazar un acta que tú registraste.");
 
   await prisma.actaComite.update({ where: { id }, data: { estado: "Rechazada", motivoRechazo: motivo } });
   await writeAudit({ usuarioId: Number(session.user.id), accion: "rechazar", modulo: MOD, registroId: id, valorNuevo: { estado: "Rechazada", motivo } });

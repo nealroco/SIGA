@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -22,14 +22,17 @@ export default async function DocumentoDetallePage({ params }: { params: Promise
   const documentoId = Number(id);
   if (!documentoId) notFound();
 
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+  if (!(await can(session.user.rol, "MOD-005", "ver"))) redirect("/documental");
+  const rol = session.user.rol;
+
   const doc = await prisma.documento.findUnique({
     where: { id: documentoId },
     include: { contrato: true, versiones: { orderBy: { version: "desc" } } },
   });
   if (!doc) notFound();
 
-  const session = await auth();
-  const rol = session!.user.rol;
   const puedeCargar = await can(rol, "MOD-005", "cargar");
   const puedeRevisar = await can(rol, "MOD-005", "editar");
 

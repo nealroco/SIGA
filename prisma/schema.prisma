@@ -124,121 +124,122 @@ model AuditLog {
   fechaHora     DateTime @default(now())
   usuario       Usuario? @relation(fields: [usuarioId], references: [id])
 
+  @@index([modulo, accion, fechaHora])
   @@map("auditoria")
 }
 
 /// MOD-001 Beneficiarios
 model Beneficiario {
-  id                        Int                     @id @default(autoincrement())
-  documento                 String                  @unique
-  nombre                    String
-  edad                      Int?
-  sexo                      String? // M | F | Otro
-  programa                  String?
-  territorioId              Int?
-  estado                    String                  @default("Activo") // Activo | Inactivo (RN-002: baja lógica, nunca DELETE)
-  createdAt                 DateTime                @default(now())
-  updatedAt                 DateTime                @updatedAt
+  id           Int      @id @default(autoincrement())
+  documento    String   @unique
+  nombre       String
+  edad         Int?
+  sexo         String? // M | F | Otro
+  programa     String?
+  territorioId Int?
+  estado       String   @default("Activo") // Activo | Inactivo (RN-002: baja lógica, nunca DELETE)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // Identidad (ficha de inscripción)
   primerNombre       String?
-  segundoNombre       String?
-  primerApellido      String?
-  segundoApellido     String?
-  genero              String? // ficha: Femenino | Masculino | Otro — distinto de `sexo` (dominio legado, no se fusiona)
-  tipoDocumento        String? // TI | CC | RC | CE | PEP
-  fechaExpedicionDoc   DateTime?
-  lugarExpedicionDoc   String?
-  lugarNacimiento      String?
-  fechaNacimiento      DateTime?
+  segundoNombre      String?
+  primerApellido     String?
+  segundoApellido    String?
+  genero             String? // ficha: Femenino | Masculino | Otro — distinto de `sexo` (dominio legado, no se fusiona)
+  tipoDocumento      String? // TI | CC | RC | CE | PEP
+  fechaExpedicionDoc DateTime?
+  lugarExpedicionDoc String?
+  lugarNacimiento    String?
+  fechaNacimiento    DateTime?
 
   // Datos físicos
-  estaturaCm    Int?
-  pesoKg        Float?
-  tipoSangre    String?
-  talla         String?
+  estaturaCm Int?
+  pesoKg     Float?
+  tipoSangre String?
+  talla      String?
 
   // Ubicación / domicilio (del beneficiario, distinto de Territorio)
-  direccionDomicilio    String? @db.Text
-  ubicacionDomicilio    String? // Urbano | Rural
-  estrato               Int?
-  veredaCorregimiento   String?
-  nombreSede            String?
-  jornada               String? // Mañana | Única | Tarde
+  direccionDomicilio  String? @db.Text
+  ubicacionDomicilio  String? // Urbano | Rural
+  estrato             Int?
+  veredaCorregimiento String?
+  nombreSede          String?
+  jornada             String? // Mañana | Única | Tarde
 
   // Educación
-  grado                    String?
-  descolarizado            Boolean @default(false)
-  institucionEducativa     String?
-  secretariaEducacionCert  String?
-  nombreEstablecimiento    String?
-  nombreSedeEducativa      String?
-  codigoDaneSede           String?
-  codigoDaneMunicipio      String?
+  grado                   String?
+  descolarizado           Boolean @default(false)
+  institucionEducativa    String?
+  secretariaEducacionCert String?
+  nombreEstablecimiento   String?
+  nombreSedeEducativa     String?
+  codigoDaneSede          String?
+  codigoDaneMunicipio     String?
 
   // Salud / afiliación
-  afiliacionSalud      String? // Subsidiado | Contributivo | Otro
-  otroTipoAfiliacion   String?
-  eps                  String?
-  consumeMedicamento   Boolean @default(false)
-  cualMedicamento      String? @db.Text
-  correoElectronico    String?
-  tieneConvulsiones    Boolean @default(false)
-  tieneCardiovascular  Boolean @default(false)
-  tieneRespiratoria    Boolean @default(false)
-  tieneAlergias        Boolean @default(false)
-  tieneEpilepsia       Boolean @default(false)
-  tieneOtraEnfermedad  Boolean @default(false)
-  cualOtraEnfermedad   String? @db.Text
+  afiliacionSalud     String? // Subsidiado | Contributivo | Otro
+  otroTipoAfiliacion  String?
+  eps                 String?
+  consumeMedicamento  Boolean @default(false)
+  cualMedicamento     String? @db.Text
+  correoElectronico   String?
+  tieneConvulsiones   Boolean @default(false)
+  tieneCardiovascular Boolean @default(false)
+  tieneRespiratoria   Boolean @default(false)
+  tieneAlergias       Boolean @default(false)
+  tieneEpilepsia      Boolean @default(false)
+  tieneOtraEnfermedad Boolean @default(false)
+  cualOtraEnfermedad  String? @db.Text
 
   // Discapacidad
-  diagnosticadoDiscapacidad   Boolean @default(false)
-  tieneRegistroLocalizacion   Boolean @default(false)
-  discapacidadFisicoMotor     Boolean @default(false)
-  discapacidadVisual          Boolean @default(false)
-  discapacidadAuditiva        Boolean @default(false)
-  discapacidadIntelectual     Boolean @default(false)
-  discapacidadMultiple        Boolean @default(false)
-  cualDiscapacidad             String? @db.Text
-  recomendacionMedica          String? @db.Text
+  diagnosticadoDiscapacidad Boolean @default(false)
+  tieneRegistroLocalizacion Boolean @default(false)
+  discapacidadFisicoMotor   Boolean @default(false)
+  discapacidadVisual        Boolean @default(false)
+  discapacidadAuditiva      Boolean @default(false)
+  discapacidadIntelectual   Boolean @default(false)
+  discapacidadMultiple      Boolean @default(false)
+  cualDiscapacidad          String? @db.Text
+  recomendacionMedica       String? @db.Text
 
   // Población especial
-  tipoPoblacion              String? // Ninguno|Afro|Campesino|Indígena|Otro|Raizal|Víctima del conflicto|ROM|Hijo de mujer lideresa
-  cabildoResguardo            String?
-  otroTipoCondicionEspecial   Boolean @default(false)
-  cualOtraCondicion            String? @db.Text
-  victimaConflictoArmado       Boolean @default(false)
-  registroUnicoVictimas        Boolean @default(false)
-  numeroRuv                    String?
+  tipoPoblacion             String? // Ninguno|Afro|Campesino|Indígena|Otro|Raizal|Víctima del conflicto|ROM|Hijo de mujer lideresa
+  cabildoResguardo          String?
+  otroTipoCondicionEspecial Boolean @default(false)
+  cualOtraCondicion         String? @db.Text
+  victimaConflictoArmado    Boolean @default(false)
+  registroUnicoVictimas     Boolean @default(false)
+  numeroRuv                 String?
 
   // Documentos anexos (checklist fija)
-  docRegistroCivilOTi            Boolean @default(false)
-  docCertificadoEpsAdres          Boolean @default(false)
-  docCedulaAcudiente               Boolean @default(false)
-  docConsentimientoAsentimiento    Boolean @default(false)
-  docFichaInscripcion              Boolean @default(false)
-  docAceptoPoliticaDatos           Boolean @default(false)
+  docRegistroCivilOTi           Boolean @default(false)
+  docCertificadoEpsAdres        Boolean @default(false)
+  docCedulaAcudiente            Boolean @default(false)
+  docConsentimientoAsentimiento Boolean @default(false)
+  docFichaInscripcion           Boolean @default(false)
+  docAceptoPoliticaDatos        Boolean @default(false)
 
   // Alimentación
-  cuentaConAlimentacion          Boolean @default(false)
-  tipoComplementoAlimentario     String?
-  modalidadAlimentacion          String?
-  requiereAlimentacionCentro     Boolean @default(false)
+  cuentaConAlimentacion      Boolean @default(false)
+  tipoComplementoAlimentario String?
+  modalidadAlimentacion      String?
+  requiereAlimentacionCentro Boolean @default(false)
 
   // Transporte
-  medioTransporte           String?
-  tiempoRecorrido            String?
-  requiereTransporteCentro   Boolean @default(false)
-  requerimientoTransporte    String? @db.Text
+  medioTransporte          String?
+  tiempoRecorrido          String?
+  requiereTransporteCentro Boolean @default(false)
+  requerimientoTransporte  String? @db.Text
 
   // Meta / registro (formador / grupo)
-  nombreFormador             String?
-  ccFormador                 String?
-  tipoPoblacionFormador      String?
-  grupoCentroInteres         String?
-  observacionesRegistro      String? @db.Text
-  fechaIngreso               DateTime?
-  departamentoBeneficiario   String? // dato propio de la ficha — NO confundir con Territorio.departamento
+  nombreFormador           String?
+  ccFormador               String?
+  tipoPoblacionFormador    String?
+  grupoCentroInteres       String?
+  observacionesRegistro    String?   @db.Text
+  fechaIngreso             DateTime?
+  departamentoBeneficiario String? // dato propio de la ficha — NO confundir con Territorio.departamento
 
   territorio                Territorio?             @relation(fields: [territorioId], references: [id])
   selecciones               SeleccionBeneficiario[]
@@ -248,6 +249,7 @@ model Beneficiario {
   acudiente                 Acudiente?
   contactoEmergencia        ContactoEmergencia?
 
+  @@index([estado, nombre])
   @@map("beneficiarios")
 }
 
@@ -299,6 +301,7 @@ model Item {
   createdBy   Usuario?          @relation("item_creador", fields: [createdById], references: [id])
   dotaciones  DotacionEntrega[]
 
+  @@index([estado])
   @@map("items")
 }
 
@@ -319,6 +322,7 @@ model DotacionEntrega {
   createdBy       Usuario?     @relation("dotacion_creador", fields: [createdById], references: [id])
   devueltoBy      Usuario?     @relation("dotacion_devuelto", fields: [devueltoById], references: [id])
 
+  @@index([estado])
   @@map("dotacion_entregas")
 }
 
@@ -336,6 +340,7 @@ model Lote {
   createdBy    Usuario?    @relation("lote_creador", fields: [createdById], references: [id])
   escenarios   Escenario[]
 
+  @@index([estado])
   @@map("lotes")
 }
 
@@ -381,6 +386,9 @@ model Territorio {
   escenarios    Escenario[]
   contratos     Contrato[]
 
+  @@index([estado])
+  @@index([municipio])
+  @@index([zona])
   @@map("territorios")
 }
 
@@ -439,6 +447,7 @@ model ReservaEscenario {
   escenario        Escenario @relation(fields: [escenarioId], references: [id])
   createdBy        Usuario?  @relation("reserva_creador", fields: [createdById], references: [id])
 
+  @@index([escenarioId, estado])
   @@map("reservas_escenario")
 }
 
@@ -474,6 +483,7 @@ model Mantenimiento {
   escenario      Escenario @relation(fields: [escenarioId], references: [id])
   createdBy      Usuario?  @relation("mant_creador", fields: [createdById], references: [id])
 
+  @@index([escenarioId, estado])
   @@map("mantenimientos")
 }
 
@@ -492,28 +502,28 @@ model Tercero {
 
 /// MOD-010 Contratos — flujo RN-025 (doble aprobación: Financiera registra, Administrador aprueba)
 model Contrato {
-  id             Int             @id @default(autoincrement())
-  numero         String          @unique
-  objeto         String          @db.Text
+  id             Int            @id @default(autoincrement())
+  numero         String         @unique
+  objeto         String         @db.Text
   terceroId      Int
   convocatoriaId Int? // MOD-008: contrato derivado de una convocatoria adjudicada
   territorioId   Int? // municipio donde se ejecuta — alimenta el mapa de calor de inversión
-  valorTotal     Float           @default(0)
+  valorTotal     Float          @default(0)
   fechaInicio    DateTime?
   fechaFin       DateTime?
   supervisor     String?
-  estado         String          @default("Registrado") // Registrado | Aprobado | Rechazado | Cerrado
-  motivoRechazo  String?         @db.Text
+  estado         String         @default("Registrado") // Registrado | Aprobado | Rechazado | Cerrado
+  motivoRechazo  String?        @db.Text
   createdById    Int?
   aprobadoById   Int?
   aprobadoEn     DateTime?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  tercero        Tercero         @relation(fields: [terceroId], references: [id])
-  convocatoria   Convocatoria?   @relation(fields: [convocatoriaId], references: [id])
-  territorio     Territorio?     @relation(fields: [territorioId], references: [id])
-  createdBy      Usuario?        @relation("registrante", fields: [createdById], references: [id])
-  aprobadoBy     Usuario?        @relation("aprobador", fields: [aprobadoById], references: [id])
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  tercero        Tercero        @relation(fields: [terceroId], references: [id])
+  convocatoria   Convocatoria?  @relation(fields: [convocatoriaId], references: [id])
+  territorio     Territorio?    @relation(fields: [territorioId], references: [id])
+  createdBy      Usuario?       @relation("registrante", fields: [createdById], references: [id])
+  aprobadoBy     Usuario?       @relation("aprobador", fields: [aprobadoById], references: [id])
   informes       Informe[]
   documentos     Documento[]
   cuentasCobro   CuentaCobro[]
@@ -521,6 +531,7 @@ model Contrato {
   registroSecop  RegistroSecop?
   actasComite    ActaComite[]
 
+  @@index([estado, createdAt])
   @@map("contratos")
 }
 
@@ -537,6 +548,7 @@ model IndicadorFisico {
   createdAt  DateTime     @default(now())
   avances    AvanceMeta[]
 
+  @@index([estado])
   @@map("indicadores_fisicos")
 }
 
@@ -557,6 +569,7 @@ model AvanceMeta {
   createdBy         Usuario?        @relation("avance_creador", fields: [createdById], references: [id])
   aprobadoBy        Usuario?        @relation("avance_aprobador", fields: [aprobadoById], references: [id])
 
+  @@index([indicadorId, estado])
   @@map("avances_meta")
 }
 
@@ -616,6 +629,8 @@ model Rubro {
   aprobadoBy    Usuario?           @relation("rubro_aprobador", fields: [aprobadoById], references: [id])
   cuentas       CuentaCobro[]
 
+  @@index([fuenteId])
+  @@index([estado])
   @@map("rubros")
 }
 
@@ -641,6 +656,7 @@ model CuentaCobro {
   aprobadoBy    Usuario?  @relation("cuenta_aprobador", fields: [aprobadoById], references: [id])
   pagos         Pago[]
 
+  @@index([rubroId, estado])
   @@map("cuentas_cobro")
 }
 
@@ -665,6 +681,7 @@ model Pago {
   createdBy     Usuario?    @relation("pago_creador", fields: [createdById], references: [id])
   aprobadoBy    Usuario?    @relation("pago_aprobador", fields: [aprobadoById], references: [id])
 
+  @@index([estado])
   @@map("pagos")
 }
 
@@ -732,6 +749,7 @@ model Personal {
   createdBy        Usuario?  @relation("personal_creador", fields: [createdById], references: [id])
   aprobadoBy       Usuario?  @relation("personal_aprobador", fields: [aprobadoById], references: [id])
 
+  @@index([estado])
   @@map("personal")
 }
 
@@ -749,6 +767,8 @@ model Seguimiento {
   beneficiario   Beneficiario @relation(fields: [beneficiarioId], references: [id])
   createdBy      Usuario?     @relation("seg_creador", fields: [createdById], references: [id])
 
+  @@index([beneficiarioId])
+  @@index([estado])
   @@map("seguimientos")
 }
 
@@ -768,6 +788,8 @@ model Informe {
   contrato            Contrato  @relation(fields: [contratoId], references: [id])
   createdBy           Usuario?  @relation("inf_creador", fields: [createdById], references: [id])
 
+  @@index([contratoId, periodo])
+  @@index([estado])
   @@map("informes")
 }
 
@@ -788,6 +810,8 @@ model Documento {
   createdBy     Usuario?           @relation("documento_creador", fields: [createdById], references: [id])
   versiones     VersionDocumento[]
 
+  @@index([contratoId])
+  @@index([estado])
   @@map("documentos")
 }
 
@@ -865,6 +889,7 @@ model ActaComite {
   createdBy      Usuario?      @relation("acta_creador", fields: [createdById], references: [id])
   aprobadoBy     Usuario?      @relation("acta_aprobador", fields: [aprobadoById], references: [id])
 
+  @@index([estado])
   @@map("actas_comite")
 }
 
@@ -883,6 +908,7 @@ model Comunicacion {
   convocatoria   Convocatoria? @relation(fields: [convocatoriaId], references: [id])
   createdBy      Usuario?      @relation("comunicacion_creador", fields: [createdById], references: [id])
 
+  @@index([estado])
   @@map("comunicaciones")
 }
 
@@ -898,6 +924,7 @@ model Notificacion {
   createdAt    DateTime @default(now())
   createdBy    Usuario? @relation("notificacion_creador", fields: [createdById], references: [id])
 
+  @@index([createdAt])
   @@map("notificaciones")
 }
 

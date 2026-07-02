@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -18,7 +19,9 @@ const fmt = (d: Date | null) => (d ? new Date(d).toLocaleDateString("es-CO") : "
 export default async function SeguimientoPage({ searchParams }: { searchParams: Promise<{ estado?: string }> }) {
   const sp = await searchParams;
   const session = await auth();
-  const puedeCrear = session ? await can(session.user.rol, "MOD-011", "crear") : false;
+  if (!session?.user) redirect("/login");
+  if (!(await can(session.user.rol, "MOD-011", "ver"))) redirect("/dashboard");
+  const puedeCrear = await can(session.user.rol, "MOD-011", "crear");
 
   const estado = sp.estado ?? "";
   const where: Prisma.SeguimientoWhereInput = {};
@@ -28,6 +31,7 @@ export default async function SeguimientoPage({ searchParams }: { searchParams: 
     where,
     orderBy: { createdAt: "desc" },
     include: { beneficiario: true },
+    take: 200,
   });
 
   return (

@@ -1,27 +1,51 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { can } from "@/lib/permissions";
+import { getPermisos, puede } from "@/lib/permissions";
 import { editarPersonal, darDeBajaPersonal, aprobarPersonal, rechazarPersonal } from "@/actions/personal";
 import PersonalForm from "@/components/PersonalForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function PersonalDetallePage({ params }: { params: Promise<{ id: string }> }) {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+  const rol = session.user.rol;
+  const permisos = await getPermisos(rol);
+  const nivel = permisos.get("MOD-002");
+  if (!puede(nivel, "ver")) redirect("/personal");
+
   const { id } = await params;
   const personalId = Number(id);
   if (!personalId) notFound();
 
-  const p = await prisma.personal.findUnique({ where: { id: personalId }, include: { createdBy: true, aprobadoBy: true } });
+  const p = await prisma.personal.findUnique({
+    where: { id: personalId },
+    select: {
+      id: true,
+      documento: true,
+      nombre: true,
+      cargo: true,
+      perfil: true,
+      tipoVinculacion: true,
+      fechaIngreso: true,
+      correo: true,
+      telefono: true,
+      estado: true,
+      estadoAprobacion: true,
+      motivoRechazo: true,
+      aprobadoEn: true,
+      createdBy: { select: { id: true, nombre: true } },
+      aprobadoBy: { select: { id: true, nombre: true } },
+    },
+  });
   if (!p) notFound();
 
-  const session = await auth();
-  const rol = session?.user.rol;
-  const editable = p.estadoAprobacion !== "Aprobado";
-  const puedeEditar = (rol ? await can(rol, "MOD-002", "editar") : false) && editable;
-  const puedeBaja = rol ? await can(rol, "MOD-002", "eliminar") : false;
-  const puedeAprobar = (rol ? await can(rol, "MOD-002", "aprobar") : false) && p.estadoAprobacion === "Pendiente";
+  const editable = p.estadoAprobacion !== "Aprobado" && p.estado !== "Inactivo";
+  const puedeEditar = puede(nivel, "editar") && editable;
+  const puedeBaja = puede(nivel, "eliminar");
+  const puedeAprobar = puede(nivel, "aprobar") && p.estadoAprobacion === "Pendiente";
 
   return (
     <div>
@@ -74,9 +98,13 @@ export default async function PersonalDetallePage({ params }: { params: Promise<
 
       {!puedeEditar ? (
         <div className="alert info" style={{ marginTop: 18, maxWidth: 720 }}>
-          {editable
-            ? <>Tu rol (<b>{rol}</b>) tiene <b>solo lectura</b> en MOD-002. Consulta sin edición (RN-015).</>
-            : <>Vinculación ya <b>aprobada</b> — no puede editarse.</>}
+          {editable ? (
+            <>Tu rol (<b>{rol}</b>) tiene <b>solo lectura</b> en MOD-002. Consulta sin edición (RN-015).</>
+          ) : p.estado === "Inactivo" ? (
+            <>Registro dado de <b>baja</b> (Inactivo) — no puede editarse.</>
+          ) : (
+            <>Vinculación ya <b>aprobada</b> — no puede editarse.</>
+          )}
         </div>
       ) : (
         <div style={{ marginTop: 18 }}>

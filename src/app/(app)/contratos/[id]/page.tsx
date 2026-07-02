@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -18,14 +18,16 @@ export default async function ContratoDetallePage({ params }: { params: Promise<
   const contratoId = Number(id);
   if (!contratoId) notFound();
 
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+  if (!(await can(session.user.rol, "MOD-010", "ver"))) redirect("/contratos");
+  const rol = session.user.rol;
+
   const c = await prisma.contrato.findUnique({
     where: { id: contratoId },
     include: { tercero: true, createdBy: true, aprobadoBy: true, territorio: true },
   });
   if (!c) notFound();
-
-  const session = await auth();
-  const rol = session!.user.rol;
   const editable = c.estado === "Registrado" || c.estado === "Rechazado";
   const puedeEditar = (await can(rol, "MOD-010", "editar")) && editable;
   const puedeAprobar = (await can(rol, "MOD-010", "aprobar")) && c.estado === "Registrado";

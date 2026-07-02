@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -14,13 +15,26 @@ const ESTADO_BADGE: Record<string, string> = {
 export default async function ComunicacionesPage({ searchParams }: { searchParams: Promise<{ estado?: string }> }) {
   const sp = await searchParams;
   const session = await auth();
-  const puedeCrear = session ? await can(session.user.rol, "MOD-019", "crear") : false;
+  if (!session?.user) redirect("/login");
+  if (!(await can(session.user.rol, "MOD-019", "ver"))) redirect("/dashboard");
+  const puedeCrear = await can(session.user.rol, "MOD-019", "crear");
 
   const estado = sp.estado ?? "";
   const where: Prisma.ComunicacionWhereInput = {};
   if (["Borrador", "Enviada"].includes(estado)) where.estado = estado;
 
-  const items = await prisma.comunicacion.findMany({ where, orderBy: { createdAt: "desc" } });
+  const items = await prisma.comunicacion.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      asunto: true,
+      tipo: true,
+      canal: true,
+      publico: true,
+      estado: true,
+    },
+  });
 
   return (
     <div>

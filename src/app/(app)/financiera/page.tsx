@@ -27,7 +27,17 @@ export default async function FinancieraPage({ searchParams }: { searchParams: P
   const items = await prisma.cuentaCobro.findMany({
     where,
     orderBy: { createdAt: "desc" },
-    include: { contrato: true, rubro: true, pagos: true },
+    take: 200,
+    select: {
+      id: true,
+      periodo: true,
+      valorCobrado: true,
+      valorAprobado: true,
+      estado: true,
+      contrato: { select: { numero: true } },
+      rubro: { select: { nombre: true } },
+      pagos: { where: { estado: "Aprobado" }, select: { valorPagado: true } },
+    },
   });
 
   return (
@@ -78,7 +88,7 @@ export default async function FinancieraPage({ searchParams }: { searchParams: P
               <tr><td colSpan={8} className="empty">No hay cuentas de cobro.</td></tr>
             ) : (
               items.map((c) => {
-                const totalPagado = c.pagos.filter((p) => p.estado === "Aprobado").reduce((acc, p) => acc + p.valorPagado, 0);
+                const totalPagado = c.pagos.reduce((acc, p) => acc + p.valorPagado, 0);
                 const saldoCausado = (c.valorAprobado ?? 0) - totalPagado;
                 return (
                   <tr key={c.id}>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -16,14 +16,27 @@ export default async function ComunicacionDetallePage({ params }: { params: Prom
   const comunicacionId = Number(id);
   if (!comunicacionId) notFound();
 
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+  const rol = session.user.rol;
+  if (!(await can(rol, "MOD-019", "ver"))) redirect("/comunicaciones");
+
   const c = await prisma.comunicacion.findUnique({
     where: { id: comunicacionId },
-    include: { createdBy: true },
+    select: {
+      id: true,
+      asunto: true,
+      tipo: true,
+      canal: true,
+      publico: true,
+      estado: true,
+      contenido: true,
+      createdAt: true,
+      createdBy: { select: { nombre: true } },
+    },
   });
   if (!c) notFound();
 
-  const session = await auth();
-  const rol = session!.user.rol;
   const puedeEditar = (await can(rol, "MOD-019", "editar")) && c.estado === "Borrador";
   const puedeMarcarEnviada = puedeEditar; // misma condición: editar (E) + estado Borrador
 

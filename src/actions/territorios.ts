@@ -1,12 +1,22 @@
 "use server";
 
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
 import { writeAudit } from "@/lib/audit";
+
+function esDuplicadoDeCodigo(err: unknown): boolean {
+  return (
+    err instanceof Prisma.PrismaClientKnownRequestError &&
+    err.code === "P2002" &&
+    Array.isArray((err.meta as { target?: unknown })?.target) &&
+    ((err.meta as { target: string[] }).target).includes("codigo")
+  );
+}
 
 const MOD = "MOD-012";
 
@@ -65,19 +75,25 @@ export async function crearTerritorio(_prev: FormState, fd: FormData): Promise<F
   const dup = await prisma.territorio.findUnique({ where: { codigo: d.codigo } });
   if (dup) return { fieldErrors: { codigo: "Ya existe un territorio con ese código." } };
 
-  const creado = await prisma.territorio.create({
-    data: {
-      codigo: d.codigo,
-      municipio: d.municipio,
-      departamento: d.departamento,
-      zona: d.zona ?? null,
-      poblacion: d.poblacion ?? null,
-      lat: d.lat ?? null,
-      lng: d.lng ?? null,
-      estado: "Activo",
-      createdById: Number(session.user.id),
-    },
-  });
+  let creado;
+  try {
+    creado = await prisma.territorio.create({
+      data: {
+        codigo: d.codigo,
+        municipio: d.municipio,
+        departamento: d.departamento,
+        zona: d.zona ?? null,
+        poblacion: d.poblacion ?? null,
+        lat: d.lat ?? null,
+        lng: d.lng ?? null,
+        estado: "Activo",
+        createdById: Number(session.user.id),
+      },
+    });
+  } catch (err) {
+    if (esDuplicadoDeCodigo(err)) return { fieldErrors: { codigo: "Ya existe un territorio con ese código." } };
+    throw err;
+  }
   await writeAudit({ usuarioId: Number(session.user.id), accion: "crear", modulo: MOD, registroId: creado.id, valorNuevo: { codigo: d.codigo, municipio: d.municipio, estado: "Activo" } });
   revalidatePath("/territorios");
   redirect("/territorios");
@@ -101,18 +117,23 @@ export async function editarTerritorio(_prev: FormState, fd: FormData): Promise<
   const dup = await prisma.territorio.findUnique({ where: { codigo: d.codigo } });
   if (dup && dup.id !== id) return { fieldErrors: { codigo: "Otro territorio ya usa ese código." } };
 
-  await prisma.territorio.update({
-    where: { id },
-    data: {
-      codigo: d.codigo,
-      municipio: d.municipio,
-      departamento: d.departamento,
-      zona: d.zona ?? null,
-      poblacion: d.poblacion ?? null,
-      lat: d.lat ?? null,
-      lng: d.lng ?? null,
-    },
-  });
+  try {
+    await prisma.territorio.update({
+      where: { id },
+      data: {
+        codigo: d.codigo,
+        municipio: d.municipio,
+        departamento: d.departamento,
+        zona: d.zona ?? null,
+        poblacion: d.poblacion ?? null,
+        lat: d.lat ?? null,
+        lng: d.lng ?? null,
+      },
+    });
+  } catch (err) {
+    if (esDuplicadoDeCodigo(err)) return { fieldErrors: { codigo: "Otro territorio ya usa ese código." } };
+    throw err;
+  }
   await writeAudit({ usuarioId: Number(session.user.id), accion: "editar", modulo: MOD, registroId: id, valorAnterior: { codigo: actual.codigo, municipio: actual.municipio }, valorNuevo: { codigo: d.codigo, municipio: d.municipio } });
   revalidatePath("/territorios");
   redirect("/territorios");

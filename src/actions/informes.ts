@@ -14,13 +14,13 @@ export type FormState = { error?: string; fieldErrors?: Record<string, string>; 
 
 const schema = z.object({
   contratoId: z.preprocess((v) => Number(v), z.number().int().positive("Selecciona un contrato")),
-  // periodo: formato AAAA-MM (p. ej. 2026-01) o al menos 4 caracteres
+  // periodo: formato AAAA-MM (p. ej. 2026-01)
   periodo: z
     .string()
     .trim()
     .min(4, "Periodo requerido (p. ej. 2026-01)")
     .max(20)
-    .refine((v) => /^\d{4}-\d{2}$/.test(v) || v.length >= 4, "Formato de periodo no válido (p. ej. 2026-01)"),
+    .refine((v) => /^\d{4}-\d{2}$/.test(v), "Formato de periodo no válido (p. ej. 2026-01)"),
   observacion: z.preprocess((v) => (v === "" ? undefined : v), z.string().max(600).optional()),
 });
 
@@ -52,7 +52,8 @@ export async function crearInforme(_prev: FormState, fd: FormData): Promise<Form
   const d = parsed.data;
 
   const contrato = await prisma.contrato.findUnique({ where: { id: d.contratoId } });
-  if (!contrato) return { fieldErrors: { contratoId: "El contrato no existe." } };
+  if (!contrato || contrato.estado !== "Aprobado")
+    return { fieldErrors: { contratoId: "El contrato debe estar Aprobado." } };
 
   // RN-022: no se puede radicar en un periodo cerrado del mismo contrato.
   const cerrado = await prisma.informe.findFirst({
@@ -91,6 +92,8 @@ export async function editarInforme(_prev: FormState, fd: FormData): Promise<For
   if (!id) return { error: "Informe no válido." };
   const actual = await prisma.informe.findUnique({ where: { id } });
   if (!actual) return { error: "El informe no existe." };
+  if (actual.estado === "Aprobado" || actual.periodoCerrado || actual.certificadoGenerado)
+    return { error: "No se puede editar un informe Aprobado, con periodo cerrado o con certificado generado." };
 
   const parsed = schema.safeParse(readForm(fd));
   if (!parsed.success) return { fieldErrors: fieldErrorsOf(parsed.error) };

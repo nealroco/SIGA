@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -20,7 +21,9 @@ export default async function AuditoriaPage({
 }) {
   const sp = await searchParams;
   const session = await auth();
-  const rol = session!.user.rol;
+  if (!session?.user) redirect("/login");
+  const rol = session.user.rol;
+  if (!(await can(rol, "MOD-026", "ver"))) redirect("/dashboard");
   const puedeCrear = await can(rol, "MOD-026", "crear");
   const puedeEditar = await can(rol, "MOD-026", "editar");
 
@@ -33,6 +36,7 @@ export default async function AuditoriaPage({
       prisma.hallazgoAuditoria.count({ where: { estado: "Abierto" } }),
       prisma.hallazgoAuditoria.findMany({
         orderBy: { createdAt: "desc" },
+        take: 200,
         include: { createdBy: true },
       }),
       prisma.auditLog.findMany({ select: { modulo: true }, distinct: ["modulo"], orderBy: { modulo: "asc" } }),

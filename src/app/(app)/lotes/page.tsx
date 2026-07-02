@@ -24,7 +24,7 @@ export default async function LotesPage({
   }
   if (estado === "Activo" || estado === "Inactivo") where.estado = estado;
 
-  const items = await prisma.lote.findMany({ where, orderBy: { createdAt: "desc" }, include: { territorio: true } });
+  const items = await prisma.lote.findMany({ where, orderBy: { createdAt: "desc" }, include: { territorio: true }, take: 200 });
 
   return (
     <div>

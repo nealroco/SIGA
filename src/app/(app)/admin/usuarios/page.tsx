@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -19,7 +20,9 @@ const fmt = (d: Date | null) => (d ? new Date(d).toLocaleString("es-CO") : "—"
 
 export default async function UsuariosPage() {
   const session = await auth();
-  const rol = session!.user.rol;
+  if (!session?.user) redirect("/login");
+  const rol = session.user.rol;
+  if (!(await can(rol, "MOD-028", "ver"))) redirect("/dashboard");
   const puedeEditar = await can(rol, "MOD-028", "editar");
 
   const [usuarios, accesos] = await Promise.all([

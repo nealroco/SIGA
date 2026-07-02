@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -16,17 +16,23 @@ export default async function EvaluacionEsalDetallePage({ params }: { params: Pr
   const evaluacionId = Number(id);
   if (!evaluacionId) notFound();
 
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+  if (!(await can(session.user.rol, "MOD-009", "ver"))) redirect("/evaluacion-esal");
+
   const e = await prisma.evaluacionEsal.findUnique({
     where: { id: evaluacionId },
     include: { tercero: true, convocatoria: true, createdBy: true, aprobadoBy: true },
   });
   if (!e) notFound();
 
-  const session = await auth();
-  const rol = session!.user.rol;
+  const rol = session.user.rol;
   const editable = e.estado === "Registrada" || e.estado === "Rechazada";
   const puedeEditar = (await can(rol, "MOD-009", "editar")) && editable;
-  const puedeAprobar = (await can(rol, "MOD-009", "aprobar")) && e.estado === "Registrada";
+  const puedeAprobar =
+    (await can(rol, "MOD-009", "aprobar")) &&
+    e.estado === "Registrada" &&
+    e.createdById !== Number(session.user.id);
   const terceros = await prisma.tercero.findMany({ where: { estado: "Activo" }, orderBy: { razonSocial: "asc" } });
   const convocatorias = await prisma.convocatoria.findMany({ orderBy: { nombre: "asc" } });
 
