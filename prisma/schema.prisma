@@ -60,6 +60,8 @@ model Usuario {
   rolId                     Int
   estado                    String                  @default("Activo") // Activo | Inactivo | Bloqueado
   ultimoAcceso              DateTime?
+  intentosFallidos          Int                     @default(0) // bloqueo suave tras intentos fallidos de login
+  bloqueadoHasta            DateTime?
   createdAt                 DateTime                @default(now())
   rol                       Rol                     @relation(fields: [rolId], references: [id])
   auditorias                AuditLog[]

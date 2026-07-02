@@ -14,6 +14,14 @@ export const dynamic = "force-dynamic";
 
 const cop = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
 
+/** Ejecuta una query y, si falla, la degrada a `fallback` en vez de tumbar toda la página. */
+function safe<T>(promesa: Promise<T>, fallback: T, etiqueta: string): Promise<T> {
+  return promesa.catch((err) => {
+    console.error(`[dashboard] falló la consulta "${etiqueta}":`, err);
+    return fallback;
+  });
+}
+
 export default async function DashboardPage() {
   const [
     total, activos, inactivos, modulos, roles, porProgramaRaw,
@@ -21,19 +29,19 @@ export default async function DashboardPage() {
     cuentas, pagos, docsAprobados, docsTotal,
     tendencia,
   ] = await Promise.all([
-    prisma.beneficiario.count(),
-    prisma.beneficiario.count({ where: { estado: "Activo" } }),
-    prisma.beneficiario.count({ where: { estado: "Inactivo" } }),
-    prisma.modulo.count(),
-    prisma.rol.count(),
-    prisma.beneficiario.groupBy({ by: ["programa"], _count: { _all: true }, where: { estado: "Activo" } }),
-    prisma.contrato.count({ where: { estado: "Aprobado" } }),
-    prisma.contrato.count({ where: { estado: "Registrado" } }),
-    prisma.cuentaCobro.findMany({ where: { estado: { in: ["Aprobada", "Pagada"] } }, select: { valorAprobado: true } }),
-    prisma.pago.findMany({ where: { estado: "Aprobado" }, select: { valorPagado: true } }),
-    prisma.documento.count({ where: { estado: "Aprobado" } }),
-    prisma.documento.count(),
-    beneficiariosPorMes(6),
+    safe(prisma.beneficiario.count(), 0, "beneficiarios.total"),
+    safe(prisma.beneficiario.count({ where: { estado: "Activo" } }), 0, "beneficiarios.activos"),
+    safe(prisma.beneficiario.count({ where: { estado: "Inactivo" } }), 0, "beneficiarios.inactivos"),
+    safe(prisma.modulo.count(), 0, "modulos.total"),
+    safe(prisma.rol.count(), 0, "roles.total"),
+    safe(prisma.beneficiario.groupBy({ by: ["programa"], _count: { _all: true }, where: { estado: "Activo" } }), [], "beneficiarios.porPrograma"),
+    safe(prisma.contrato.count({ where: { estado: "Aprobado" } }), 0, "contratos.aprobados"),
+    safe(prisma.contrato.count({ where: { estado: "Registrado" } }), 0, "contratos.pendientes"),
+    safe(prisma.cuentaCobro.findMany({ where: { estado: { in: ["Aprobada", "Pagada"] } }, select: { valorAprobado: true } }), [], "cuentas.aprobadas"),
+    safe(prisma.pago.findMany({ where: { estado: "Aprobado" }, select: { valorPagado: true } }), [], "pagos.aprobados"),
+    safe(prisma.documento.count({ where: { estado: "Aprobado" } }), 0, "documentos.aprobados"),
+    safe(prisma.documento.count(), 0, "documentos.total"),
+    safe(beneficiariosPorMes(6), [], "beneficiarios.porMes"),
   ]);
 
   // Base por compromiso (no por caja): solo cuentas Aprobadas/Pagadas cuentan como "aprobado" — ver src/lib/presupuesto.ts

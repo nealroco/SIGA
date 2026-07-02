@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -7,7 +8,9 @@ export const dynamic = "force-dynamic";
 
 export default async function InfraestructuraCloudPage() {
   const session = await auth();
-  const rol = session!.user.rol;
+  if (!session?.user) redirect("/login");
+  const rol = session.user.rol;
+  if (!(await can(rol, "MOD-029", "ver"))) redirect("/dashboard");
   const puedeEditar = await can(rol, "MOD-029", "editar");
 
   const [usuariosActivos, totalModulos, totalDocumentos, totalAuditoria, configuraciones] = await Promise.all([
@@ -17,7 +20,13 @@ export default async function InfraestructuraCloudPage() {
     prisma.auditLog.count(),
     prisma.configuracionCloud.findMany({
       orderBy: { clave: "asc" },
-      include: { actualizadoBy: true },
+      select: {
+        clave: true,
+        valor: true,
+        descripcion: true,
+        updatedAt: true,
+        actualizadoBy: { select: { nombre: true } },
+      },
     }),
   ]);
 

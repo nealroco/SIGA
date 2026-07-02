@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { can } from "@/lib/permissions";
@@ -17,7 +18,9 @@ const ESTADO_BADGE: Record<string, string> = {
 export default async function FuentesPage({ searchParams }: { searchParams: Promise<{ estado?: string }> }) {
   const sp = await searchParams;
   const session = await auth();
-  const puedeCrear = session ? await can(session.user.rol, "MOD-020", "crear") : false;
+  if (!session?.user) redirect("/login");
+  if (!(await can(session.user.rol, "MOD-020", "ver"))) redirect("/dashboard");
+  const puedeCrear = await can(session.user.rol, "MOD-020", "crear");
 
   const estado = sp.estado ?? "";
   const where: Prisma.FuenteFinanciacionWhereInput = {};

@@ -21,15 +21,17 @@ export default async function LoginPage() {
         <div className="eyebrow">Ministerio del Deporte · ESAL-JDEC</div>
         <h1>Acceso a la plataforma</h1>
         <LoginForm />
-        <div className="login-hint">
-          Demo · usuarios sembrados:
-          <br />
-          <span className="login-hint-row"><AdminIcon size={13} /> <code>admin@sigadeportes.co</code> (Administrador)</span>{" · "}
-          <span className="login-hint-row"><RevisorIcon size={13} /> <code>revisor@sigadeportes.co</code> (Revisor)</span>{" · "}
-          <span className="login-hint-row"><CoordIcon size={13} /> <code>coord@sigadeportes.co</code> (Coord. deportiva)</span>
-          <br />
-          Contraseña: <code>siga2026</code>
-        </div>
+        {process.env.NEXT_PUBLIC_SHOW_DEMO_HINT === "true" && (
+          <div className="login-hint">
+            Demo · usuarios sembrados:
+            <br />
+            <span className="login-hint-row"><AdminIcon size={13} /> <code>admin@sigadeportes.co</code> (Administrador)</span>{" · "}
+            <span className="login-hint-row"><RevisorIcon size={13} /> <code>revisor@sigadeportes.co</code> (Revisor)</span>{" · "}
+            <span className="login-hint-row"><CoordIcon size={13} /> <code>coord@sigadeportes.co</code> (Coord. deportiva)</span>
+            <br />
+            Contraseña: <code>siga2026</code>
+          </div>
+        )}
       </div>
     </main>
   );

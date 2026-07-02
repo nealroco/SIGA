@@ -7,8 +7,8 @@ import { ArrowRight } from "lucide-react";
 
 export default function LoginForm() {
   const router = useRouter();
-  const [correo, setCorreo] = useState("admin@sigadeportes.co");
-  const [password, setPassword] = useState("siga2026");
+  const [correo, setCorreo] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
