@@ -9,7 +9,7 @@
   --paper: #f7f8fc; --white: #fff; --ink: #0b1538;
   --line: #e2e6f2; --line-2: #c9d0e6; --muted: #586089; --muted-2: #858dae;
   --txt: #eaeeff; --txt-2: #9facd8; --txt-3: #6e7cae;
-  --r: 6px; --maxw: 1280px; --sidebar: 264px;
+  --r: 6px; --maxw: min(1800px, 96vw); --sidebar: 264px;
   --font-display: var(--font-bricolage), system-ui, sans-serif;
   --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
@@ -269,6 +269,36 @@ table.data .doc { font-family: var(--font-mono); font-size: .82rem; color: var(-
 
 .anchor-pills { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 4px; }
 .anchor-pills a { scroll-margin-top: 16px; }
+
+/* ===== Carrusel de tarjetas deslizables (alternativa al scroll largo con anchor-pills) ===== */
+.carrusel { margin-top: 28px; }
+.carrusel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.carrusel-titulo { display: flex; align-items: baseline; gap: 10px; }
+.carrusel-titulo .section-cap { margin: 0; }
+.carrusel-contador { font-family: var(--font-mono); font-size: .75rem; color: var(--muted); }
+.carrusel-arrows { display: flex; gap: 8px; }
+.carrusel-arrow {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--paper); color: var(--ink); cursor: pointer; transition: background .15s, transform .15s;
+}
+.carrusel-arrow:hover { background: var(--line); }
+.carrusel-arrow:active { transform: scale(.92); }
+.carrusel-arrow:disabled { opacity: .35; cursor: default; }
+.carrusel-arrow:disabled:hover { background: var(--paper); }
+.carrusel-viewport { overflow: hidden; touch-action: pan-y; }
+.carrusel-track { display: flex; transition: transform .38s cubic-bezier(.22,.68,0,1); }
+.carrusel-slide { flex: 0 0 100%; min-width: 0; }
+.carrusel-dots { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
+.carrusel-dot {
+  width: 9px; height: 9px; border-radius: 999px; border: none; padding: 0; cursor: pointer;
+  background: var(--line-2); transition: background .15s, transform .15s;
+}
+.carrusel-dot.activo { background: var(--blue); transform: scale(1.25); }
+@media (prefers-reduced-motion: reduce) {
+  .carrusel-track { transition: none; }
+  .carrusel-dot { transition: none; }
+}
 
 /* ===== Tablet (soporte básico, aditivo — desktop queda intacto) ===== */
 @media (max-width: 1024px) {
