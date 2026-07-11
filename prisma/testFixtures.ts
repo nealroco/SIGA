@@ -429,8 +429,14 @@ export async function cleanupByIds(registros: Array<{ model: ModeloBorrable; id:
   const errores: unknown[] = [];
   for (const { model, id } of registros) {
     try {
-      // @ts-expect-error -- indexación dinámica del client de Prisma por nombre de modelo.
-      await testPrisma[model].delete({ where: { id } });
+      // Indexación dinámica del client por nombre de modelo. Cast explícito en vez de la
+      // directiva ts-expect-error: si el cliente Prisma no está generado (p. ej. en el build
+      // de Hostinger el postinstall de terceros no corre), la indexación tipa "de más" y la
+      // directiva quedaría unused, rompiendo el type-check. El cast compila en ambos casos.
+      const delegado = testPrisma[model] as unknown as {
+        delete(args: { where: { id: number } }): Promise<unknown>;
+      };
+      await delegado.delete({ where: { id } });
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code;
       if (code !== "P2025") errores.push(err); // P2025 = "Record to delete does not exist" (ya borrado)
